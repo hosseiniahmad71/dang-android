@@ -6,12 +6,16 @@ android {
         applicationId 'ir.dang.household'
         minSdk 26
         targetSdk 35
-        versionCode 8
-        versionName '7.0.1-alpha'
+        versionCode 9
+        versionName '7.0.2-alpha'
     }
     buildTypes {
         release { minifyEnabled false }
-        debug { minifyEnabled false }
+        debug {
+            minifyEnabled false
+            // Separate package: installs beside an older APK with a different signing key.
+            applicationIdSuffix '.preview'
+        }
     }
     compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
 }

@@ -36,10 +36,12 @@ jobs:
         run: npm run test:native
       - name: Test Android system bars regression contract
         run: node --test tests/android-system-bars.test.mjs
+      - name: Verify separate-install package identity
+        run: node --test tests/android-parallel-install.test.mjs
       - name: Build signed debug APK
         run: cd android && gradle --no-daemon assembleDebug
       - uses: actions/upload-artifact@v4
         with:
-          name: Dang-v7.0.1-statusbar-fix-debug-apk
+          name: Dang-v7.0.2-parallel-install-debug-apk
           path: android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
