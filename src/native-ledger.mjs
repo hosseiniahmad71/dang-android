@@ -23,7 +23,7 @@ export function effectiveEvents(events){
  }
  return events.filter(e=>e.kind!=='reversal'&&!reversed.has(e.id));
 }
-export function fundDelta(e){switch(e.kind){case 'deposit':return e.amount;case 'refund':return -e.amount;case 'purchase':case 'payment':return e.accountId==='fund'?-e.amount:0;case 'transfer':return (e.destinationId==='fund'?e.amount:0)-(e.accountId==='fund'?e.amount:0);default:return 0}}
+export function fundDelta(e){switch(e.kind){case 'deposit':return e.creditOnly||e.destinationId&&e.accountId!=='fund'?0:e.amount;case 'refund':return e.accountId&&e.accountId!=='fund'?0:-e.amount;case 'purchase':case 'payment':return e.accountId==='fund'?-e.amount:0;case 'transfer':return (e.destinationId==='fund'?e.amount:0)-(e.accountId==='fund'?e.amount:0);default:return 0}}
 export function project(store){
  const evs=effectiveEvents(store.events).map((e,i)=>({e,i})).sort((a,b)=>a.e.date.localeCompare(b.e.date)||a.i-b.i).map(x=>x.e);
  const custody=new Map(),credits=new Map(),waivers=new Map(),cashflow=[];
@@ -47,7 +47,11 @@ export function project(store){
   }
   if(e.kind==='deposit'){
    const acct=store.accounts.find(a=>a.id===e.accountId);
-   if(!acct||acct.kind!=='personal'||acct.ownerId!==e.memberId||get(custody,e.accountId)!==0)throw Error('واریز دنگ باید از کارت شخصیِ خود عضو و بدون مانده امانی باشد.');
+   if(!acct)throw Error('حساب واریز یافت نشد.');
+   if(e.destinationId){
+    if(e.destinationId!==e.accountId)throw Error('حساب مقصد واریز معتبر نیست.');
+    if(e.accountId!=='fund'&&!e.creditOnly)add(custody,e.accountId,e.amount);
+   }else if(acct.kind!=='personal'||acct.ownerId!==e.memberId||get(custody,e.accountId)!==0)throw Error('واریز قدیمی باید از کارت شخصی خود عضو و بدون وجه امانی باشد.');
    add(credits,key(e.memberId,e.period),e.amount);
   }
   if(e.kind==='transfer'){
@@ -57,6 +61,10 @@ export function project(store){
     add(custody,e.accountId,-e.amount);
     if(e.destinationId!=='fund')add(custody,e.destinationId,e.amount);
    }
+  }
+  if(e.kind==='refund'&&e.accountId&&e.accountId!=='fund'){
+   if(get(custody,e.accountId)<e.amount)throw Error('وجه خانوادگی در حساب بازپرداخت کافی نیست.');
+   add(custody,e.accountId,-e.amount);
   }
   if(e.kind==='waiver'){
    const k=key(e.memberId,e.period);
@@ -73,5 +81,5 @@ export function project(store){
   if(!Number.isSafeInteger(fund)||fund<0)throw Error(`مانده تاریخی صندوق منفی شد: ${e.date} / ${e.id}`);
   cashflow.push({id:e.id,date:e.date,fund,delta:fundDelta(e)});
  }
- return {fund,custody:Object.fromEntries(custody),credits:Object.fromEntries(credits),waivers:Object.fromEntries(waivers),cashflow,active:evs};
+ return {fund,totalCash:fund+[...custody.values()].reduce((a,n)=>a+n,0),custody:Object.fromEntries(custody),credits:Object.fromEntries(credits),waivers:Object.fromEntries(waivers),cashflow,active:evs};
 }

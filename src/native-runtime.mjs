@@ -2,6 +2,7 @@
 // Termux server. SQLite I/O is performed exclusively by the native Java bridge.
 import {validateStore} from './native-validate.mjs';
 import {project,eventMonths,persianMonth,monthStart} from './native-ledger.mjs';
+import {validateDepositBatch} from './deposit-policy.mjs';
 
 const bad=m=>{throw Error(m)};
 const copied=x=>structuredClone(x);
@@ -42,6 +43,8 @@ export function validateTransition(current,next,{restore=false,systemAction=''}=
  if(systemAction==='obligation-adjust'&&newlyAdded.filter(e=>e.kind==='obligationAdjust').length!==1)bad('تعدیل تعهد نامعتبر است.');
  if(systemAction!=='reverse'&&newlyAdded.some(e=>e.kind==='reversal'))bad('ابطال فقط از مسیر ثبت سند برگشتی مجاز است.');
  if(systemAction==='reverse'&&newlyAdded.filter(e=>e.kind==='reversal').length!==1)bad('سند برگشت نامعتبر است.');
+ const depositBatch=newlyAdded.filter(e=>e.kind==='deposit');
+ if(depositBatch.length){const today=new Intl.DateTimeFormat('en-CA',{year:'numeric',month:'2-digit',day:'2-digit',timeZone:'Asia/Tehran'}).format(new Date());validateDepositBatch(current,depositBatch,today);}
  for(const e of newlyAdded)if((current.closedPeriods||[]).some(p=>eventMonths(e).includes(p)))bad('ماه مالی قفل است؛ برای تغییر ابتدا آن را با دلیل باز کنید.');
  for(const p of next.plans.filter(p=>!current.plans.some(x=>x.id===p.id))){
   if((current.closedPeriods||[]).some(x=>x===persianMonth(p.createdDate)||p.installments.some(i=>persianMonth(i.dueDate)===x)))bad('ثبت قرارداد در ماه بسته مجاز نیست.');

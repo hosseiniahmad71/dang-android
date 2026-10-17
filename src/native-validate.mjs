@@ -41,10 +41,13 @@ export function validateStore(raw){
    case 'obligationAdjust':requireGood(memberIds.has(e.memberId)&&month(e.period)&&['increase','decrease'].includes(e.direction)&&name(e.reason)&&e.reason.length>=8,'سند تعدیل تعهد نامعتبر است.');break;
    case 'reversal':requireGood(id(e.originalId)&&name(e.reason)&&e.reason.length<=1000&&typeof e.recordedAt==='string','سند برگشت نامعتبر است.');break;
    case 'purchase':requireGood((e.fundedBy===undefined||['fund','personal'].includes(e.fundedBy))&&accountIds.has(e.accountId)&&categories.has(e.category)&&month(e.creditPeriod)&& (e.accountId==='fund'||e.fundedBy==='fund'||memberIds.has(e.paidById)),'خرید دارای ارجاع نامعتبر است.');break;
-   case 'deposit':requireGood(memberIds.has(e.memberId)&&accountIds.has(e.accountId)&&e.accountId!=='fund'&&month(e.period),'واریز دنگ نامعتبر است.');break;
+   case 'deposit':requireGood(memberIds.has(e.memberId)&&accountIds.has(e.accountId)&&month(e.period)&&
+     (e.creditOnly===undefined||typeof e.creditOnly==='boolean')&&
+     (e.destinationId===undefined?(e.accountId!=='fund'):(e.destinationId===e.accountId)),
+     'واریز دنگ یا حساب مقصد نامعتبر است.');break;
    case 'payment':requireGood((e.fundedBy===undefined||['fund','personal'].includes(e.fundedBy))&&amounts.has(e.installmentId)&&accountIds.has(e.accountId)&&month(e.creditPeriod)&&(e.accountId==='fund'||e.fundedBy==='fund'||memberIds.has(e.paidById)),'پرداخت قسط نامعتبر است.');paymentSums.set(e.installmentId,(paymentSums.get(e.installmentId)||0)+e.amount);break;
    case 'transfer':requireGood(accountIds.has(e.accountId)&&accountIds.has(e.destinationId)&&e.accountId!==e.destinationId,'انتقال وجه نامعتبر است.');break;
-   case 'waiver':case 'refund':requireGood(memberIds.has(e.memberId)&&month(e.period),'تسویه یا بخشودگی نامعتبر است.');break;
+   case 'waiver':case 'refund':requireGood(memberIds.has(e.memberId)&&month(e.period)&&(e.kind!=='refund'||!e.accountId||accountIds.has(e.accountId)),'تسویه یا بخشودگی نامعتبر است.');break;
    case 'creditMove':requireGood(memberIds.has(e.memberId)&&month(e.sourcePeriod)&&month(e.targetPeriod)&&e.sourcePeriod!==e.targetPeriod,'انتقال اعتبار نامعتبر است.');break;
    default:throw new Error('نوع رویداد مالی ناشناخته است.');
   }

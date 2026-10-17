@@ -39,3 +39,29 @@
 /* Audited cancellation remains visible but visually distinguished */
 .reversed-record{opacity:.64;background:rgba(120,120,120,.055)}
 .reversed-record .record-amount>b{text-decoration:line-through}
+
+/* Finance operation types are color-coded consistently in history. */
+.record[class*="record-kind-"]{border-right:5px solid #c6d1d8;}
+.record-kind-deposit{border-right-color:#15966e!important;background:linear-gradient(270deg,#edf9f1 0%,#fff 30%)}
+.record-kind-purchase{border-right-color:#db4b54!important;background:linear-gradient(270deg,#fff0f1 0%,#fff 30%)}
+.record-kind-reversal{border-right-color:#edc349!important;background:linear-gradient(270deg,#fff8dc 0%,#fff 30%)}
+.record-kind-payment{border-right-color:#ee8b2e!important;background:linear-gradient(270deg,#fff3e8 0%,#fff 30%)}
+.record-kind-waiver{border-right-color:#9e63ce!important;background:linear-gradient(270deg,#f6efff 0%,#fff 30%)}
+.record-kind-creditMove{border-right-color:#3985d4!important;background:linear-gradient(270deg,#edf5ff 0%,#fff 30%)}
+.record-kind-transfer{border-right-color:#16a5ad!important;background:linear-gradient(270deg,#edfcfd 0%,#fff 30%)}
+.record-kind-refund{border-right-color:#db65a4!important;background:linear-gradient(270deg,#fff1f8 0%,#fff 30%)}
+.record-kind-obligationAdjust{border-right-color:#667b92!important;background:linear-gradient(270deg,#f0f4f8 0%,#fff 30%)}
+.record-kind-deposit .record-icon{background:#ddf6e6;color:#147e57}
+.record-kind-purchase .record-icon{background:#ffedf0;color:#c8344a}
+.record-kind-reversal .record-icon{background:#fff2bf;color:#966509}
+.record-kind-payment .record-icon{background:#fff0dc;color:#b96c1d}
+.record-kind-waiver .record-icon{background:#f3eaff;color:#8748b5}
+.record-kind-creditMove .record-icon{background:#e7f1ff;color:#276fba}
+.record-kind-transfer .record-icon{background:#e4fafb;color:#177d87}
+.record-kind-refund .record-icon{background:#ffe7f3;color:#af427a}
+.deposit-member-list{display:grid;gap:10px;margin:13px 0;padding:12px;border:1px solid #dce8e6;border-radius:14px;background:#f8fbfa}
+.deposit-member-row{display:grid;gap:9px;border:1px solid #e5eaed;background:white;border-radius:12px;padding:11px}
+.deposit-member-row.selected{border-color:#92d6c1}
+.deposit-member-toggle{display:flex;align-items:center;gap:10px;cursor:pointer;font-weight:700}
+.deposit-member-toggle input{width:20px;height:20px;accent-color:#148e78;flex:none}
+.deposit-member-row .control{max-width:100%}

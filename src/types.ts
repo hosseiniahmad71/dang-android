@@ -1,14 +1,16 @@
+// @ts-ignore: Android projection is audited separately in native JS domain tests
+import {project} from './native-ledger.mjs';
 export type Member={id:string,name:string,contributes:boolean};
 export type Account={id:string,name:string,kind:'fund'|'personal'|'other',ownerId?:string};
 export type ObligationAdjust={id:string,kind:'obligationAdjust',date:string,amount:number,direction:'increase'|'decrease',memberId:string,period:string,reason:string,recordedAt:string,description:string};
 export type Reversal={id:string,kind:'reversal',date:string,amount:0,originalId:string,reason:string,recordedAt:string,description:string};
 export type Purchase={id:string,kind:'purchase',date:string,amount:number,accountId:string,paidById:string,category:string,description:string,creditPeriod:string,fundedBy?:'fund'|'personal'};
-export type Deposit={id:string,kind:'deposit',date:string,amount:number,memberId:string,accountId:string,period:string,description:string};
+export type Deposit={id:string,kind:'deposit',date:string,amount:number,memberId:string,accountId:string,destinationId?:string,creditOnly?:boolean,period:string,description:string};
 export type Payment={id:string,kind:'payment',date:string,amount:number,installmentId:string,accountId:string,paidById:string,creditPeriod:string,description:string,fundedBy?:'fund'|'personal'};
 export type Transfer={id:string,kind:'transfer',date:string,amount:number,accountId:string,destinationId:string,description:string};
 export type Waiver={id:string,kind:'waiver',date:string,amount:number,memberId:string,period:string,description:string};
 export type CreditMove={id:string,kind:'creditMove',date:string,amount:number,memberId:string,sourcePeriod:string,targetPeriod:string,description:string};
-export type Refund={id:string,kind:'refund',date:string,amount:number,memberId:string,period:string,description:string};
+export type Refund={id:string,kind:'refund',date:string,amount:number,memberId:string,period:string,description:string,accountId?:string};
 export type Event=Purchase|Deposit|Payment|Transfer|Waiver|CreditMove|Refund|Reversal|ObligationAdjust;
 export type Installment={id:string,dueDate:string,amount:number};
 export type Plan={id:string,title:string,provider:string,creditOwnerId:string,category:string,createdDate:string,total:number,installments:Installment[]};
@@ -18,15 +20,18 @@ export function obligation(s:Store,memberId:string,period:string){const m=s.memb
 export function installmentPlan(s:Store,id:string){return s.plans.find(p=>p.installments.some(i=>i.id===id))}
 export function installmentDue(s:Store,id:string){return s.plans.flatMap(p=>p.installments).find(i=>i.id===id)}
 export function effectiveEvents(s:Store){const gone=new Set(s.events.filter(e=>e.kind==='reversal').map(e=>e.originalId));return s.events.filter(e=>e.kind!=='reversal'&&!gone.has(e.id))}
-export function fundDelta(e:Event){if(e.kind==='deposit')return e.amount;if(e.kind==='refund')return -e.amount;if(e.kind==='purchase'||e.kind==='payment')return e.accountId==='fund'?-e.amount:0;if(e.kind==='transfer')return (e.destinationId==='fund'?e.amount:0)-(e.accountId==='fund'?e.amount:0);return 0}
-export function fundBalance(s:Store){return s.openingBalance+effectiveEvents(s).reduce((a,e)=>a+fundDelta(e),0)}
-export function fundBalanceThrough(s:Store,period:string){return s.openingBalance+effectiveEvents(s).filter(e=>periodOf(e.date)<=period).reduce((a,e)=>a+fundDelta(e),0)}
+export function fundDelta(e:Event){if(e.kind==='deposit')return e.creditOnly||e.destinationId&&e.accountId!=='fund'?0:e.amount;if(e.kind==='refund')return -e.amount;if(e.kind==='purchase'||e.kind==='payment')return e.accountId==='fund'?-e.amount:0;if(e.kind==='transfer')return (e.destinationId==='fund'?e.amount:0)-(e.accountId==='fund'?e.amount:0);return 0}
+export function fundBalance(s:Store){return familyCashThrough(s)}
+export function fundBalanceThrough(s:Store,period:string){return familyCashThrough(s,period)}
+// Full family-owned cash includes funds held in custodial personal accounts.
+function familyCashThrough(s:Store,period?:string){const events=effectiveEvents(s).filter(e=>!period||periodOf(e.date)<=period);return project({...s,events}).totalCash as number}
 const inferredCache=new WeakMap<Store,Set<string>>();
 const custodyCache=new WeakMap<Store,Record<string,number>>();
 export function personalPaymentIds(s:Store){const old=inferredCache.get(s);if(old)return old;const custody=new Map<string,number>(),valid=new Set<string>();
  const active=effectiveEvents(s).map((e,i)=>({e,i})).sort((a,b)=>a.e.date.localeCompare(b.e.date)||a.i-b.i).map(x=>x.e);
  const bal=(id:string)=>custody.get(id)||0;
  for(const e of active){
+  if(e.kind==='deposit'&&e.destinationId&&e.destinationId!=='fund'&&!e.creditOnly)custody.set(e.destinationId,bal(e.destinationId)+e.amount);
   if(e.kind==='transfer'){
    if(e.accountId==='fund')custody.set(e.destinationId,bal(e.destinationId)+e.amount);
    else{custody.set(e.accountId,bal(e.accountId)-e.amount);if(e.destinationId!=='fund')custody.set(e.destinationId,bal(e.destinationId)+e.amount)}

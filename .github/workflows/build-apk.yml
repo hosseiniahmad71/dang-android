@@ -38,10 +38,12 @@ jobs:
         run: node --test tests/android-system-bars.test.mjs
       - name: Verify separate-install package identity
         run: node --test tests/android-parallel-install.test.mjs
+      - name: Audit 500 transactions in each of 1, 3 and 6 month windows
+        run: node --test tests/finance-v71.test.mjs tests/v71-ui-contract.test.mjs
       - name: Build signed debug APK
         run: cd android && gradle --no-daemon assembleDebug
       - uses: actions/upload-artifact@v4
         with:
-          name: Dang-v7.0.2-parallel-install-debug-apk
+          name: Dang-v7.1.0-offline-debug-apk
           path: android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
