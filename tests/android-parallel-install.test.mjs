@@ -6,8 +6,8 @@ const manifest = readFileSync('android/app/src/main/AndroidManifest.xml','utf8')
 
 test('preview APK has its own install identity and preserves original application',()=>{
   assert.match(gradle, /applicationId 'ir\.dang\.household'/);
-  assert.match(gradle, /applicationIdSuffix '\.preview'/);
-  assert.match(gradle, /versionName '7\.0\.2-alpha'/);
-  assert.match(manifest, /android:label="دنگ آزمایشی"/);
+  assert.match(gradle, /applicationIdSuffix '\.preview71'/);
+  assert.match(gradle, /versionName '7\.1\.0-alpha'/);
+  assert.match(manifest, /android:label="دنگ ۷.۱ آزمایشی"/);
   assert.doesNotMatch(manifest, /android:sharedUserId/);
 });
