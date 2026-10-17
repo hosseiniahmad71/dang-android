@@ -1,0 +1,11 @@
+import {spawn} from 'node:child_process';
+import {fileURLToPath} from 'node:url';
+import {resolve} from 'node:path';
+const root=resolve(fileURLToPath(new URL('../',import.meta.url)));
+let stopping=false;
+const api=spawn(process.execPath,['server/server.mjs'],{cwd:root,stdio:'inherit'});
+const ui=spawn(process.execPath,['node_modules/vite/bin/vite.js','--host','127.0.0.1'],{cwd:root,stdio:'inherit'});
+const stop=()=>{if(stopping)return;stopping=true;api.kill('SIGTERM');ui.kill('SIGTERM');};
+process.on('SIGINT',stop);process.on('SIGTERM',stop);
+api.on('exit',code=>{if(!stopping){console.error('سرور SQLite متوقف شد.');stop();process.exitCode=code||1}});
+ui.on('exit',code=>{if(!stopping){stop();process.exitCode=code||1}});
