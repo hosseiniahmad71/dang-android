@@ -97,7 +97,7 @@ function DepositForm({store,saveMany,period}:{store:Store,saveMany:(events:Event
   {historic&&<Notice tone="warning">تاریخ دریافت قبل از امروز است. پس از تأیید، فقط اعتبار اعضای انتخاب‌شده ثبت می‌شود؛ موجودی صندوق دوباره افزایش نمی‌یابد.</Notice>}
   {account==='maryam-card'&&<Notice>حساب مقصد پیش‌فرض، کارت مریم است. واریزی‌های جدید در این کارت به‌صورت وجه خانوادگی امانی ثبت می‌شوند و خرید از این وجه، اعتبار شخصی جدید ایجاد نمی‌کند.</Notice>}
   {error&&<div className="form-error" role="alert">{error}</div>}
-  <div className="form-footer"><SaveButton>ثبت واریز {fnum(members.length)} عضو</SaveButton></div>
+  <div className="form-footer"><SaveButton>{`ثبت واریز ${fnum(members.length)} عضو`}</SaveButton></div>
  </form>
 }
 type DraftInstallment={id:string,dueDate:string,amount:string};
