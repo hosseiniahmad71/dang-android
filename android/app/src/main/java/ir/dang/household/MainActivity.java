@@ -5,6 +5,7 @@ import android.app.AlertDialog;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Build;
 import android.webkit.JavascriptInterface;
 import android.webkit.JsPromptResult;
 import android.webkit.JsResult;
@@ -15,7 +16,11 @@ import android.webkit.WebResourceResponse;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.view.View;
+import android.view.WindowInsets;
 import android.view.ViewGroup;
+import android.widget.FrameLayout;
+import android.graphics.Insets;
 import android.graphics.Color;
 import org.json.JSONObject;
 import java.io.InputStream;
@@ -34,8 +39,12 @@ public final class MainActivity extends Activity {
 
     @Override public void onCreate(Bundle bundle){
         super.onCreate(bundle);
-        getWindow().setStatusBarColor(Color.rgb(18,121,107));
+        // Keep notification icons, clock, and battery visible on a solid status-bar background.
+        getWindow().setStatusBarColor(Color.WHITE);
         getWindow().setNavigationBarColor(Color.rgb(245,247,250));
+        getWindow().getDecorView().setSystemUiVisibility(
+            View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR | View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR
+        );
         database=new DangDatabase(this);
         web=new WebView(this);
         web.setBackgroundColor(Color.WHITE);
@@ -78,7 +87,29 @@ public final class MainActivity extends Activity {
                 new AlertDialog.Builder(MainActivity.this).setMessage(message).setView(text).setPositiveButton("تأیید",(d,w)->result.confirm(text.getText().toString())).setNegativeButton("لغو",(d,w)->result.cancel()).setOnCancelListener(d->result.cancel()).show();return true;
             }
         });
-        setContentView(web,new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,ViewGroup.LayoutParams.MATCH_PARENT));
+        // Android 15/16 (target API 35) enforce edge-to-edge. Keep system bars
+        // unobstructed: the WebView begins below the actual status-bar/cutout inset.
+        // Apply insets at the native root, not again in CSS (avoids double spacing).
+        FrameLayout root = new FrameLayout(this);
+        root.setBackgroundColor(Color.WHITE);
+        root.addView(web, new FrameLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT
+        ));
+        if (Build.VERSION.SDK_INT >= 35) {
+            root.setOnApplyWindowInsetsListener((v, insets) -> {
+                Insets topAndCutout = insets.getInsets(
+                    WindowInsets.Type.statusBars() | WindowInsets.Type.displayCutout()
+                );
+                Insets navigation = insets.getInsets(WindowInsets.Type.navigationBars());
+                v.setPadding(topAndCutout.left, topAndCutout.top,
+                    topAndCutout.right, navigation.bottom);
+                return insets;
+            });
+        }
+        setContentView(root, new ViewGroup.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT
+        ));
+        if (Build.VERSION.SDK_INT >= 35) root.requestApplyInsets();
         web.loadUrl(ORIGIN+"/index.html");
     }
     private final class LocalBridge {
