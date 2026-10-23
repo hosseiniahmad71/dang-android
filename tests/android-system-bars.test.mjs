@@ -14,6 +14,6 @@ test('Native WebView preserves Android system bars and safe cutout bounds', () =
   assert.match(main,/View\.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR/);
   assert.doesNotMatch(main,/View\.SYSTEM_UI_FLAG_FULLSCREEN\b/);
   assert.doesNotMatch(main,/View\.SYSTEM_UI_FLAG_HIDE_NAVIGATION\b/);
-  assert.match(gradle,/versionCode 15/);
-  assert.match(gradle,/versionName '7\.3\.2'/);
+  assert.match(gradle,/versionCode 16/);
+  assert.match(gradle,/versionName '1\.0\.0'/);
 });
