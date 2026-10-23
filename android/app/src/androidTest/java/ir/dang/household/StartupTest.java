@@ -58,6 +58,14 @@ public class StartupTest {
   }
  }
  private void screenshot(String name) throws Exception {
+  // DOM assertions can pass before Android has presented the matching WebView frame.
+  CountDownLatch painted=new CountDownLatch(1);
+  scenario.getScenario().onActivity(a->{WebView w=find(a.getWindow().getDecorView());
+   w.postVisualStateCallback(1,new WebView.VisualStateCallback(){@Override public void onComplete(long id){
+    w.invalidate();w.postOnAnimation(()->w.postOnAnimation(painted::countDown));
+   }});
+  });
+  assertTrue("WebView visual frame was not presented",painted.await(10,TimeUnit.SECONDS));
   Bitmap image=InstrumentationRegistry.getInstrumentation().getUiAutomation().takeScreenshot();
   assertNotNull("Android screenshot unavailable",image);
   java.io.ByteArrayOutputStream bytes=new java.io.ByteArrayOutputStream();image.compress(Bitmap.CompressFormat.PNG,100,bytes);
@@ -104,7 +112,8 @@ public class StartupTest {
   for(int i=0;i<100&&!accepted;i++){accepted=accept(InstrumentationRegistry.getInstrumentation().getUiAutomation().getRootInActiveWindow());if(!accepted)Thread.sleep(100);}
   assertTrue("Native Persian cancellation confirmation missing",accepted);
   until("document.querySelector('.cancelled-stamp')");
-  assertEquals("3",js("return document.querySelectorAll('.record').length"));assertEquals(4,eventCount());screenshot("03-history");
+  assertEquals("3",js("return document.querySelectorAll('.record').length"));assertEquals(4,eventCount());
+  js("document.querySelector('.cancelled-stamp').scrollIntoView({block:'center'});return true");screenshot("03-history");
   tap(".mobile-nav button","تنظیمات");assertEquals("0",js("return document.querySelectorAll('.settings-accordion[open]').length"));screenshot("04-settings");
   scenario.getScenario().recreate();
   until("document.querySelector('.app-shell') && document.getElementById('startup-panel').hidden");assertEquals(4,eventCount());
