@@ -24,7 +24,7 @@ test('Android 7.1 encrypted envelope compatibility, tamper/password rejection, f
 test('password-free portable backup roundtrip and SHA256 corruption refusal',async()=>{
  const store={version:3,events:[{id:'evt-1',amount:23456}],plans:[{id:'inst-1'}],closedPeriods:['1405/07'],members:[{id:'member-1'}],preferences:{locale:'fa'}};
  const fresh=await encodePortableBackup(store);
- assert.equal(fresh.format,'dang-portable-backup');
+ assert.equal(fresh.format,'dong-portable-backup');
  assert.equal(fresh.version,1);
  assert.equal(fresh.schema,3);
  assert.equal('password' in fresh,false);
