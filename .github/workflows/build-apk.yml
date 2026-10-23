@@ -16,6 +16,7 @@ on:
 jobs:
   android:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     permissions:
       contents: read
     steps:
@@ -74,13 +75,7 @@ jobs:
           arch: x86_64
           target: google_apis
           disable-animations: true
-          script: |
-            mkdir -p runtime-evidence
-            trap 'adb logcat -d > runtime-evidence/logcat.txt 2>&1; adb pull /sdcard/Android/data/ir.dang.household.preview73/files runtime-evidence/screenshots || true' EXIT
-            adb logcat -c
-            adb shell svc wifi disable
-            adb shell svc data disable
-            gradle -p android --no-daemon connectedDebugAndroidTest
+          script: bash scripts/run-android-test.sh
       - name: Collect runtime evidence
         if: always()
         run: |

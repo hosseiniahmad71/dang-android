@@ -51,7 +51,14 @@ public class StartupTest {
  }
  @Test public void offlineDashboardFinanceAndReopen() throws Exception {
   until("document.querySelector('.app-shell') && document.getElementById('startup-panel').hidden");
-  assertEquals(0,eventCount()); screenshot("01-dashboard");
+  assertEquals(0,eventCount());
+  assertEquals("true",js("return JSON.parse(DangNative.invoke(JSON.stringify({op:'get'}))).value.store.startPeriod==='1405/07'"));
+  // Synthetic-only fixture: zero Ahmad's obligations before the current month.
+  // Arrears rejection remains covered by finance-v71; no user installation is touched.
+  js("var r=JSON.parse(DangNative.invoke(JSON.stringify({op:'get'}))).value,s=r.store;var parts=new Intl.DateTimeFormat('en-US-u-ca-persian',{year:'numeric',month:'numeric',timeZone:'Asia/Tehran'}).formatToParts(new Date());var y=Number(parts.find(x=>x.type==='year').value),m=Number(parts.find(x=>x.type==='month').value);for(var k=1405*12+6;k<y*12+m-1;k++){var p=Math.floor(k/12)+'/'+String(k%12+1).padStart(2,'0');s.contributionOverrides[p+'|ahmad']=0}var out=JSON.parse(DangNative.invoke(JSON.stringify({op:'commit',store:s,expectedRevision:r.revision})));if(!out.ok)throw Error(out.error);return true");
+  scenario.getScenario().recreate();
+  until("document.querySelector('.app-shell') && document.getElementById('startup-panel').hidden");
+  screenshot("01-dashboard");
   tap(".mobile-nav button","ثبت عملیات");tap(".operation-tabs button b","واریز دنگ");
   until("document.querySelector('.deposit-member-list')");
   js("document.querySelector('form button[type=submit]').click();return true");
@@ -78,13 +85,13 @@ public class StartupTest {
   scenario.getScenario().onActivity(a->find(a.getWindow().getDecorView()).evaluateJavascript(injected,null));
   js("window.dangMigrationTest().then(x=>window.migrationResult=x).catch(e=>window.migrationFailure=String(e));return true");
   until("window.migrationResult || window.migrationFailure");
-  assertEquals("undefined",js("return typeof window.migrationFailure"));
+  assertEquals("true",js("return typeof window.migrationFailure==='undefined'"));
   assertEquals("2",js("return window.migrationResult.events"));
   assertEquals("1",js("return window.migrationResult.plans"));
   // Verify the module-independent guard can report a fatal runtime error and retry safely.
   js("window.dangStartup.fail(new Error('instrumented startup failure'));return true");
   until("!document.getElementById('startup-panel').hidden && !document.getElementById('startup-actions').hidden");screenshot("05-error-recovery");
-  js("document.getElementById('startup-retry').click();return true");
-  until("document.querySelector('.app-shell') && document.getElementById('startup-panel').hidden");assertEquals(2,eventCount());
+  js("window.retryMarker=true;document.getElementById('startup-retry').click();return true");
+  until("!window.retryMarker && document.querySelector('.app-shell') && document.getElementById('startup-panel').hidden");assertEquals(2,eventCount());
  }
 }
