@@ -44,8 +44,14 @@ public class TravelTest {
   boolean opened=false;
   for(int i=0;i<80;i++){if(evaluate("!!document.querySelector('.travel-page .travel-tabs')")){opened=true;break;}Thread.sleep(150);}
   assertTrue("Separate travel UI did not render",opened);
-  assertTrue("Return home button missing",evaluate("!!document.querySelector('.travel-heading button')"));
-  assertTrue("Return click failed",evaluate("(document.querySelector('.travel-heading button').click(),true)"));
+  assertTrue("New companion editor missing",evaluate("(document.querySelector('.travel-new-shortcut')?.click(),true)"));
+  boolean editor=false;
+  for(int i=0;i<50;i++){if(evaluate("!!document.querySelector('.travel-member-input-row input')")){editor=true;break;}Thread.sleep(100);}
+  assertTrue("Professional member input did not render",editor);
+  assertTrue("Comma-separated textarea still present",evaluate("!document.querySelector('.travel-page textarea')"));
+
+  assertTrue("Return home button missing",evaluate("!!document.querySelector('.travel-shell .topbar-actions button')"));
+  assertTrue("Return click failed",evaluate("(document.querySelector('.travel-shell .topbar-actions button').click(),true)"));
   boolean home=false;
   for(int i=0;i<80;i++){if(evaluate("!!document.querySelector('.travel-entry-banner')")){home=true;break;}Thread.sleep(150);}
   assertTrue("House dashboard not restored",home);
