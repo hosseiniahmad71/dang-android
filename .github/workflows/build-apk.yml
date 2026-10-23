@@ -35,11 +35,15 @@ jobs:
           test -n "$SDKMANAGER"
           "$SDKMANAGER" --install 'platforms;android-35' 'build-tools;35.0.0'
           test -f "${ANDROID_HOME}/platforms/android-35/android.jar"
+      - name: Stage Android APK signing utility
+        run: |
+          mkdir -p signer-evidence
+          cp "$ANDROID_HOME/build-tools/35.0.0/lib/apksigner.jar" signer-evidence/apksigner.jar
       - name: Preserve public Android APK signing utility for reproducible verification
         uses: actions/upload-artifact@v4
         with:
           name: Dong-apksigner-tool-android35
-          path: ${{ env.ANDROID_HOME }}/build-tools/35.0.0/lib/apksigner.jar
+          path: signer-evidence/apksigner.jar
           if-no-files-found: error
       - name: Install web dependencies
         run: npm ci --no-audit --no-fund
