@@ -1,0 +1,45 @@
+name: Inspect original 7.1 signing cache
+on:
+  push:
+    branches: [work/7.1-signing-recovery]
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Restore original build cache without saving
+        id: old
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            /home/runner/.gradle/caches
+            /home/runner/.gradle/notifications
+            /home/runner/.gradle/.setup-gradle
+          key: gradle-home-v1|Linux-X64|android[7fa68a5c8b7efbba2c0fd9112e33f9ad]-aa564be78bdd01b0ffc5f1d8718678985c8e7406
+          fail-on-cache-miss: true
+      - name: Inspect restored files without exposing file contents
+        env:
+          CACHE_HIT: ${{ steps.old.outputs.cache-hit }}
+        shell: python
+        run: |
+          import os, pathlib, json
+          root=pathlib.Path('/home/runner/.gradle')
+          files=[p for p in root.rglob('*') if p.is_file()]
+          candidates=[]
+          for p in files:
+              with p.open('rb') as f: prefix=f.read(4)
+              named=p.suffix.lower() in ('.jks','.keystore','.p12','.pfx') or p.name=='debug.keystore'
+              magic=prefix in (bytes.fromhex('feedfeed'),bytes.fromhex('cececece'))
+              if named or magic:
+                  candidates.append({'path':str(p.relative_to(root)),'size':p.stat().st_size,'jksMagic':magic})
+          summary={'originalCacheRestored':os.environ['CACHE_HIT']=='true','fileCount':len(files),'candidateKeystores':candidates,'androidDirectoryExists':pathlib.Path('/home/runner/.android').exists()}
+          print(json.dumps(summary,indent=2))
+          pathlib.Path('/tmp/dang-71-cache-report.json').write_text(json.dumps(summary,indent=2))
+          assert summary['originalCacheRestored'], 'Exact original cache was not restored'
+      - name: Save public inspection summary only
+        uses: actions/upload-artifact@v4
+        with:
+          name: original-71-cache-inspection
+          path: /tmp/dang-71-cache-report.json
