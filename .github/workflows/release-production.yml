@@ -1,0 +1,126 @@
+name: Publish owner-signed Dang update (never debug)
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  release:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.10.2'
+      - name: Prepare SDK
+        shell: bash
+        run: |
+          set -euo pipefail
+          SDKMANAGER="$(find "${ANDROID_HOME}/cmdline-tools" -maxdepth 3 -type f -name sdkmanager | head -n 1)"
+          test -n "$SDKMANAGER"
+          "$SDKMANAGER" --install 'platforms;android-35' 'build-tools;35.0.0'
+      - name: Run complete source and financial verification
+        run: |
+          set -euo pipefail
+          npm ci --no-audit --no-fund
+          npm run build:android
+          node --test tests/*.test.mjs tests/ui-contract.test.cjs
+      - name: Load owner-managed persistent key, fail if absent
+        env:
+          DANG_KEYSTORE_BASE64: ${{ secrets.DANG_KEYSTORE_BASE64 }}
+          DANG_KEYSTORE_PASSWORD: ${{ secrets.DANG_KEYSTORE_PASSWORD }}
+          DANG_KEY_ALIAS: ${{ secrets.DANG_KEY_ALIAS }}
+          DANG_KEY_PASSWORD: ${{ secrets.DANG_KEY_PASSWORD }}
+          DANG_KEYSTORE_PATH: ${{ runner.temp }}/dang-release.jks
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$DANG_KEYSTORE_BASE64"
+          test -n "$DANG_KEYSTORE_PASSWORD"
+          test -n "$DANG_KEY_ALIAS"
+          test -n "$DANG_KEY_PASSWORD"
+          umask 077
+          printf '%s' "$DANG_KEYSTORE_BASE64" | base64 --decode > "$DANG_KEYSTORE_PATH"
+          chmod 600 "$DANG_KEYSTORE_PATH"
+          echo "DANG_KEYSTORE_PATH=$DANG_KEYSTORE_PATH" >> "$GITHUB_ENV"
+          echo "DANG_KEYSTORE_PASSWORD=$DANG_KEYSTORE_PASSWORD" >> "$GITHUB_ENV"
+          echo "DANG_KEY_ALIAS=$DANG_KEY_ALIAS" >> "$GITHUB_ENV"
+          echo "DANG_KEY_PASSWORD=$DANG_KEY_PASSWORD" >> "$GITHUB_ENV"
+      - name: Build release and matching Android test APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd android
+          gradle --no-daemon assembleRelease assembleReleaseAndroidTest -PdangTestBuildType=release
+          # Android test APK must carry the same owner key as the target app for instrumentation.
+          TEST_APK=app/build/outputs/apk/androidTest/release/app-release-androidTest.apk
+          TEST_SIGNED=app/build/outputs/apk/androidTest/release/app-release-androidTest-signed.apk
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" sign --ks "$DANG_KEYSTORE_PATH" --ks-key-alias "$DANG_KEY_ALIAS" --ks-pass env:DANG_KEYSTORE_PASSWORD --key-pass env:DANG_KEY_PASSWORD --out "$TEST_SIGNED" "$TEST_APK"
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify "$TEST_SIGNED"
+      - name: Verify exact production certificate and previous version
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p production-evidence
+          python3 scripts/verify-apk.py android/app/build/outputs/apk/release/app-release.apk --aapt "$ANDROID_HOME/build-tools/35.0.0/aapt" --expected-package ir.dang.household | tee production-evidence/apk-metadata.json
+          python3 - <<'PY'
+          import pathlib,subprocess,re,json,os,hashlib
+          root=pathlib.Path(os.environ['ANDROID_HOME'])/'build-tools/35.0.0'
+          expected='2b468a624312d5db6028984714f8c9663f6873c87c9a950c5fe0fc6787416108'
+          old=pathlib.Path('tests/upgrade-apks/update-7.3.1.apk')
+          new=pathlib.Path('android/app/build/outputs/apk/release/app-release.apk')
+          test=pathlib.Path('android/app/build/outputs/apk/androidTest/release/app-release-androidTest-signed.apk')
+          results=[]
+          for p,code,package in [(old,14,'ir.dang.household'),(new,15,'ir.dang.household'),(test,None,'ir.dang.household.test')]:
+              signature=subprocess.check_output([str(root/'apksigner'),'verify','--print-certs',str(p)],text=True).lower()
+              assert ('certificate sha-256 digest: '+expected) in signature, 'Refuse mismatch of original production certificate for '+str(p)
+              info=subprocess.check_output([str(root/'aapt'),'dump','badging',str(p)],text=True)
+              assert "package: name='"+package+"'" in info, 'Unexpected package in '+str(p)
+              if code is not None: assert "versionCode='"+str(code)+"'" in info, 'Wrong versionCode in '+str(p)
+              results.append({'filename':str(p),'sha256':hashlib.sha256(p.read_bytes()).hexdigest(),'certificate':expected,'versionCode':code})
+          pathlib.Path('production-evidence/identity.json').write_text(json.dumps(results,indent=2))
+          print(json.dumps(results,indent=2))
+          PY
+      - name: Enable emulator acceleration
+        shell: bash
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Verify production-signed in-place upgrade with SQLite and backups
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          arch: x86_64
+          target: google_apis
+          disable-animations: true
+          script: bash scripts/run-production-upgrade.sh
+      - name: Preserve evidence digest
+        if: success()
+        shell: bash
+        run: |
+          sha256sum android/app/build/outputs/apk/release/app-release.apk > production-evidence/SHA256SUMS.txt
+          cp upgrade-evidence/summary.json production-evidence/upgrade-summary.json
+      - name: Upload only verified installable production APK
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Dang-v7.3.2-OWNER-SIGNED-VERIFIED-UPGRADE
+          retention-days: 14
+          path: |
+            android/app/build/outputs/apk/release/app-release.apk
+            production-evidence/
+          if-no-files-found: error
+      - name: Wipe private key from CI runner
+        if: always()
+        shell: bash
+        run: |
+          rm -f "$RUNNER_TEMP/dang-release.jks"
