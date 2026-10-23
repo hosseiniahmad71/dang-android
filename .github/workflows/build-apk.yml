@@ -37,13 +37,13 @@ jobs:
       - name: Run web type check and compile
         run: npm run build:android && node scripts/build-android-test.mjs
       - name: Enforce fixed application identity and release governance
-        run: node --test tests/android-parallel-install.test.mjs
+        run: node --test tests/android-release-identity.test.mjs
       - name: Verify finance runtime
         run: npm run test:native
       - name: Test Android system bars regression contract
         run: node --test tests/android-system-bars.test.mjs
       - name: Verify diagnostic package identity
-        run: node --test tests/android-parallel-install.test.mjs
+        run: node --test tests/android-release-identity.test.mjs
       - name: Audit 500 transactions in each of 1, 3 and 6 month windows
         run: node --test tests/finance-v71.test.mjs tests/v71-ui-contract.test.mjs
       - name: Test financial start boundary, card-owner attribution and cancellation history
