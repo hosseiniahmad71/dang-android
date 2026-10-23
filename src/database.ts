@@ -42,9 +42,9 @@ export async function pruneBackups():Promise<void>{/* SQLite server enforces the
 export async function readBackupStore(id:string):Promise<Store>{const data=await api<{store:Store}>(`/api/backups/${encodeURIComponent(id)}/store`);return normalizeStore(data.store)}
 export async function restoreStore(s:Store){const data=await api<{revision:number}>('/api/restore','POST',{store:s,expectedRevision:revision});revision=data.revision}
 export function exportFile(store:Store){
- if(isNativeAndroid()){void saveAndroidDocument(`dang-${new Date().toISOString().replace(/[:.]/g,'-')}.json`,JSON.stringify(makeEnvelope(store),null,2)).catch(e=>alert(String(e)));return;}
+ if(isNativeAndroid()){void saveAndroidDocument(`dong-${new Date().toISOString().replace(/[:.]/g,'-')}.json`,JSON.stringify(makeEnvelope(store),null,2)).catch(e=>alert(String(e)));return;}
  const blob=new Blob([JSON.stringify(makeEnvelope(store),null,2)],{type:'application/json'});
- const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=`dang-${new Date().toISOString().slice(0,19).replaceAll(':','-')}.json`;
+ const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=`dong-${new Date().toISOString().slice(0,19).replaceAll(':','-')}.json`;
  document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),2000);
 }
 
@@ -86,7 +86,7 @@ export async function exportPortableBackup():Promise<{filename:string,location:s
  // @ts-ignore audited JavaScript module (no TypeScript declaration file)
  const {encodePortableBackup}=await import('./backup-codec.mjs');
  const content=JSON.stringify(await encodePortableBackup(store),null,2);
- const filename=`dang-${new Date().toISOString().replace(/[:.]/g,'-')}.dangbak`;
+ const filename=`dong-${new Date().toISOString().replace(/[:.]/g,'-')}.dangbak`;
  const blob=new Blob([content],{type:'application/json'});
  const url=URL.createObjectURL(blob),anchor=document.createElement('a');
  try{anchor.href=url;anchor.download=filename;document.body.append(anchor);anchor.click();anchor.remove();}
