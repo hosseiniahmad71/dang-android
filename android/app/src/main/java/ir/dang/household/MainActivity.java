@@ -166,7 +166,7 @@ public final class MainActivity extends Activity {
                 pendingId=id;pendingContent=content;
                 Intent intent=new Intent(Intent.ACTION_CREATE_DOCUMENT);
                 intent.addCategory(Intent.CATEGORY_OPENABLE);
-                intent.setType(filename.endsWith(".woff2")?"font/woff2":name.endsWith(".json")?"application/json":"application/octet-stream");
+                intent.setType(filename.endsWith(".json")?"application/json":"application/octet-stream");
                 intent.putExtra(Intent.EXTRA_TITLE,filename);
                 try{startActivityForResult(intent,SAVE_DOCUMENT);}
                 catch(Exception ex){documentResult(id,false,ex.getMessage());pendingId=null;pendingContent=null;}
