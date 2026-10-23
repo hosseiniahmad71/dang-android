@@ -17,8 +17,8 @@ android {
                 storeFile file(System.getenv('DONG_KEYSTORE_PATH'))
                 storePassword System.getenv('DONG_KEYSTORE_PASSWORD')
                 storeType 'pkcs12'
-                keyAlias System.getenv('DANG_KEY_ALIAS')
-                keyPassword System.getenv('DANG_KEY_PASSWORD')
+                keyAlias System.getenv('DONG_KEY_ALIAS')
+                keyPassword System.getenv('DONG_KEY_PASSWORD')
             }
         }
     }
