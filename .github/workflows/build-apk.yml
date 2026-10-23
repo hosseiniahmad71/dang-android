@@ -56,8 +56,8 @@ jobs:
           keytool -genkeypair -noprompt -keystore "$RUNNER_TEMP/dang-validation.jks" -storepass ci-validation-only -keypass ci-validation-only -alias validation -keyalg RSA -keysize 2048 -validity 2 -dname 'CN=CI validation only'
           echo "DONG_KEYSTORE_PATH=$RUNNER_TEMP/dang-validation.jks" >> "$GITHUB_ENV"
           echo 'DONG_KEYSTORE_PASSWORD=ci-validation-only' >> "$GITHUB_ENV"
-          echo 'DANG_KEY_ALIAS=validation' >> "$GITHUB_ENV"
-          echo 'DANG_KEY_PASSWORD=ci-validation-only' >> "$GITHUB_ENV"
+          echo 'DONG_KEY_ALIAS=validation' >> "$GITHUB_ENV"
+          echo 'DONG_KEY_PASSWORD=ci-validation-only' >> "$GITHUB_ENV"
       - name: Build release payload for runtime validation
         run: cd android && gradle --no-daemon assembleRelease assembleReleaseAndroidTest -PdongTestBuildType=release
       - name: Verify actual APK package, assets and ZIP integrity
