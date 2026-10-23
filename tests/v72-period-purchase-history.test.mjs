@@ -27,17 +27,17 @@ const purchase=(date,extra={})=>({
 });
 
 test('financial start is selectable from Mehr 1405 and used by dashboard, settings and calendar',()=>{
- assert.match(utils,/MIN_FINANCIAL_PERIOD='1405\\/07'/);
- assert.match(main,/earlier<minPeriod\\?minPeriod:earlier/);
- assert.match(settings,/earlier<minPeriod\\?minPeriod:earlier/);
- assert.match(settings,/<SearchSelect label="شروع دوره‌های دنگ"/);
- assert.match(settings,/setStartPeriod\\(startCandidate\\)/);
- assert.match(main,/setStartPeriod=\\{changeStartPeriod\\}/);
- assert.match(main,/periodOptions\\(period,store.startPeriod\\)/);
- assert.match(picker,/minPeriod=MIN_FINANCIAL_PERIOD/);
- assert.match(picker,/canGoBack=offsetMonth\\(view,-1\\)>=minPeriod/);
- assert.match(picker,/disabled=\\{iso<minDate\\}/);
- assert.match(picker,/if\\(iso<minDate\\)return/);
+ assert.ok(utils.includes("MIN_FINANCIAL_PERIOD='1405/07'"));
+ assert.ok(main.includes('earlier<minPeriod?minPeriod:earlier'));
+ assert.ok(settings.includes('earlier<minPeriod?minPeriod:earlier'));
+ assert.ok(settings.includes('<SearchSelect label="شروع دوره‌های دنگ"'));
+ assert.ok(settings.includes('setStartPeriod(startCandidate)'));
+ assert.ok(main.includes('setStartPeriod={changeStartPeriod}'));
+ assert.ok(main.includes('periodOptions(period,store.startPeriod)'));
+ assert.ok(picker.includes('minPeriod=MIN_FINANCIAL_PERIOD'));
+ assert.ok(picker.includes('canGoBack=offsetMonth(view,-1)>=minPeriod'));
+ assert.ok(picker.includes('disabled={iso<minDate}'));
+ assert.ok(picker.includes('if(iso<minDate)return'));
 });
 test('changing to Aban starts dues then; Mehr has zero obligation, no earlier financial event',()=>{
  const s=base(),aban='1405/08';
