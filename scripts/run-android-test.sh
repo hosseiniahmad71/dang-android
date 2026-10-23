@@ -9,4 +9,4 @@ trap collect EXIT
 adb logcat -c
 adb shell svc wifi disable
 adb shell svc data disable
-gradle -p android --no-daemon connectedReleaseAndroidTest -PdongTestBuildType=release -Pandroid.testInstrumentationRunnerArguments.class=ir.dong.household.StartupTest
+gradle -p android --no-daemon connectedReleaseAndroidTest -PdongTestBuildType=release -Pandroid.testInstrumentationRunnerArguments.class=ir.dong.household.StartupTest,ir.dong.household.TravelTest
