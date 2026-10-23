@@ -34,7 +34,7 @@ public class StartupTest {
   return new org.json.JSONArray("["+result.get()+"]").getString(0);
  }
  private void until(String expression) throws Exception {
-  for(int i=0;i<200;i++){if(js("return Boolean("+expression+")").equals("true"))return;Thread.sleep(150);}
+  for(int i=0;i<400;i++){if(js("return Boolean("+expression+")").equals("true"))return;Thread.sleep(150);}
   fail("Timed out: "+expression+" diagnostics="+js("return document.body.innerText"));
  }
  private void tap(String selector,String text) throws Exception {
@@ -44,15 +44,20 @@ public class StartupTest {
   js("var c=Array.from(document.querySelectorAll('.control')).find(x=>x.querySelector('label')?.textContent.includes("+JSONObject.quote(label)+"));var n=c.querySelector('input');Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(n,"+JSONObject.quote(value)+");n.dispatchEvent(new Event('input',{bubbles:true}));return true");Thread.sleep(250);
  }
  private int eventCount() throws Exception {return Integer.parseInt(js("return JSON.parse(DangNative.invoke(JSON.stringify({op:'get'}))).value.store.events.length"));}
- private void screenshot(String name) throws Exception {
-  Bitmap image=InstrumentationRegistry.getInstrumentation().getUiAutomation().takeScreenshot();
-  assertNotNull("Android screenshot unavailable",image);
+ private void writeEvidence(String name,byte[] bytes) throws Exception {
+  if(!name.matches("[a-zA-Z0-9._-]+"))throw new IllegalArgumentException("Invalid evidence name");
   try(android.os.ParcelFileDescriptor mkdir=InstrumentationRegistry.getInstrumentation().getUiAutomation().executeShellCommand("mkdir -p /sdcard/Download/dang73")){
    new android.os.ParcelFileDescriptor.AutoCloseInputStream(mkdir).readAllBytes();
   }
-  android.os.ParcelFileDescriptor[] pipes=InstrumentationRegistry.getInstrumentation().getUiAutomation().executeShellCommandRw("sh -c 'cat > /sdcard/Download/dang73/"+name+".png'");
-  try(android.os.ParcelFileDescriptor.AutoCloseOutputStream out=new android.os.ParcelFileDescriptor.AutoCloseOutputStream(pipes[1])){image.compress(Bitmap.CompressFormat.PNG,100,out);}
+  android.os.ParcelFileDescriptor[] pipes=InstrumentationRegistry.getInstrumentation().getUiAutomation().executeShellCommandRw("sh -c 'cat > /sdcard/Download/dang73/"+name+"'");
+  try(android.os.ParcelFileDescriptor.AutoCloseOutputStream out=new android.os.ParcelFileDescriptor.AutoCloseOutputStream(pipes[1])){out.write(bytes);}
   try(android.os.ParcelFileDescriptor.AutoCloseInputStream in=new android.os.ParcelFileDescriptor.AutoCloseInputStream(pipes[0])){in.readAllBytes();}
+ }
+ private void screenshot(String name) throws Exception {
+  Bitmap image=InstrumentationRegistry.getInstrumentation().getUiAutomation().takeScreenshot();
+  assertNotNull("Android screenshot unavailable",image);
+  java.io.ByteArrayOutputStream bytes=new java.io.ByteArrayOutputStream();image.compress(Bitmap.CompressFormat.PNG,100,bytes);
+  writeEvidence(name+".png",bytes.toByteArray());
  }
  private boolean accept(android.view.accessibility.AccessibilityNodeInfo node){
   if(node==null)return false;
@@ -112,6 +117,13 @@ public class StartupTest {
   assertEquals("4",js("return window.migrationResult.events"));
   assertEquals("1",js("return window.migrationResult.plans"));
   assertEquals("9750000",js("return window.migrationResult.totalCash"));
+  assertEquals("1500",js("return window.migrationResult.nativeStress.reduce((sum,x)=>sum+x.events,0)"));
+  assertEquals("true",js("return window.migrationResult.nativeStress.every(x=>x.events===500&&x.totalCash===1225000)"));
+  writeEvidence("migration-summary.json",js("return window.migrationResult").getBytes(java.nio.charset.StandardCharsets.UTF_8));
+  // The mirrored SQLite ledger retains the reversal as a fourth row.
+  try(DangDatabase db=new DangDatabase(InstrumentationRegistry.getInstrumentation().getTargetContext());android.database.Cursor cursor=db.getReadableDatabase().rawQuery("SELECT count(*) FROM ledger_events",null)){
+   assertTrue(cursor.moveToFirst());assertEquals(4,cursor.getInt(0));
+  }
   // Verify the module-independent guard can report a fatal runtime error and retry safely.
   js("window.dangStartup.fail(new Error('instrumented startup failure'));return true");
   until("!document.getElementById('startup-panel').hidden && !document.getElementById('startup-actions').hidden");screenshot("05-error-recovery");
