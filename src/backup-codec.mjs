@@ -27,3 +27,23 @@ export async function decodeAndroidBackup(x,secret){
  if(raw.storeSha256&&raw.storeSha256!==await storeDigest(raw.store))throw Error('اثر انگشت داده پشتیبان تطبیق ندارد.');
  return raw;
 }
+
+/** v2: Portable, password-free external export. SHA-256 detects accidental corruption,
+ * not malicious modification; the user is responsible for keeping this plaintext file private.
+ * Legacy 7.1 encrypted backups stay readable through decodeAndroidBackup.
+ */
+export async function encodePortableBackup(store){
+ if(!store||typeof store!=='object'||Array.isArray(store))throw Error('اطلاعات پشتیبان نامعتبر است.');
+ return {format:'dang-portable-backup',version:1,schema:3,exportedAt:new Date().toISOString(),store,storeSha256:await storeDigest(store)};
+}
+export async function decodePortableBackup(envelope){
+ if(!envelope||typeof envelope!=='object'||Array.isArray(envelope)
+  ||envelope.format!=='dang-portable-backup'||envelope.version!==1||envelope.schema!==3
+  ||typeof envelope.exportedAt!=='string'||!Number.isFinite(Date.parse(envelope.exportedAt))
+  ||!envelope.store||typeof envelope.store!=='object'||Array.isArray(envelope.store)
+  ||typeof envelope.storeSha256!=='string'||!/^[a-f0-9]{64}$/.test(envelope.storeSha256))
+  throw Error('ساختار فایل پشتیبان بدون رمز معتبر نیست.');
+ const digest=await storeDigest(envelope.store);
+ if(digest!==envelope.storeSha256)throw Error('اثر انگشت پشتیبان تطبیق ندارد؛ فایل تغییر کرده یا آسیب دیده است.');
+ return {format:'dang-backup',schema:3,exportedAt:envelope.exportedAt,store:envelope.store};
+}
