@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 
-const main = readFileSync('android/app/src/main/java/ir/dang/household/MainActivity.java', 'utf8');
+const main = readFileSync('android/app/src/main/java/ir/dong/household/MainActivity.java', 'utf8');
 const gradle = readFileSync('android/app/build.gradle','utf8');
 const release = JSON.parse(readFileSync('release/release.json','utf8'));
 
