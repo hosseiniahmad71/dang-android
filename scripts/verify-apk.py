@@ -1,5 +1,5 @@
 """Verify ZIP integrity and every locally referenced entry asset in an actual APK."""
-import argparse, hashlib, json, posixpath, re, subprocess, zipfile
+import argparse, hashlib, json, posixpath, re, subprocess, zipfile, pathlib
 from html.parser import HTMLParser
 from urllib.parse import urlsplit
 
@@ -37,5 +37,7 @@ if a.aapt:
     }
     assert "android.permission.INTERNET" not in manifest, 'Unexpected INTERNET permission'
     if a.expected_package: assert result['identity']['name']==a.expected_package
-    assert result['identity']['versionCode']=='16'
+    release=json.loads(pathlib.Path('release/release.json').read_text())
+    assert result['identity']['versionCode']==str(release['versionCode']), 'Unexpected Android version code'
+    assert result['identity']['versionName']==release['versionName'], 'Unexpected Android version name'
 print(json.dumps(result,ensure_ascii=False,indent=2))
