@@ -7,6 +7,10 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Build;
 import android.webkit.JavascriptInterface;
+import android.webkit.ConsoleMessage;
+import android.webkit.WebResourceError;
+import android.webkit.RenderProcessGoneDetail;
+import android.util.Log;
 import android.webkit.JsPromptResult;
 import android.webkit.JsResult;
 import android.webkit.ValueCallback;
@@ -45,7 +49,9 @@ public final class MainActivity extends Activity {
         getWindow().getDecorView().setSystemUiVisibility(
             View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR | View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR
         );
-        database=new DangDatabase(this);
+        try { database=new DangDatabase(this); } catch (Exception ex) {
+            new AlertDialog.Builder(this).setTitle("خطای پایگاه داده").setMessage("اطلاعات پاک نشده است.\n"+ex.toString()).setPositiveButton("تلاش مجدد",(d,w)->recreate()).setNegativeButton("بستن",(d,w)->finish()).show(); return;
+        }
         web=new WebView(this);
         web.setBackgroundColor(Color.WHITE);
         web.getSettings().setJavaScriptEnabled(true);
@@ -70,9 +76,22 @@ public final class MainActivity extends Activity {
                 String mime=name.endsWith(".html")?"text/html":name.endsWith(".js")?"text/javascript":name.endsWith(".css")?"text/css":name.endsWith(".svg")?"image/svg+xml":name.endsWith(".png")?"image/png":name.endsWith(".json")?"application/json":"application/octet-stream";
                 try{InputStream in=getAssets().open("web/"+name);return new WebResourceResponse(mime,"utf-8",in);}catch(Exception ex){return empty404();}
             }
+            @Override public void onReceivedError(WebView view,WebResourceRequest request,WebResourceError error){
+                if(request.isForMainFrame()) nativeStartupFailure("بارگذاری رابط ناموفق بود: "+error.getDescription());
+                Log.e("DangWebView","Load failed: "+request.getUrl()+" code="+error.getErrorCode());
+            }
+            @Override public boolean onRenderProcessGone(WebView view,RenderProcessGoneDetail detail){
+                nativeStartupFailure("پردازش رابط متوقف شد. اطلاعات SQLite پاک نشده است."); return true;
+            }
             private WebResourceResponse empty404(){return new WebResourceResponse("text/plain","utf-8",404,"Not found",new java.util.HashMap<>(),new java.io.ByteArrayInputStream(new byte[0]));}
         });
         web.setWebChromeClient(new WebChromeClient(){
+            @Override public boolean onConsoleMessage(ConsoleMessage message){
+                // Log source/line only: console messages can contain user financial data.
+                Log.println(message.messageLevel()==ConsoleMessage.MessageLevel.ERROR?Log.ERROR:Log.INFO,
+                    "DangWebView",message.messageLevel()+" at "+message.sourceId()+":"+message.lineNumber());
+                return true;
+            }
             @Override public boolean onShowFileChooser(WebView view,ValueCallback<Uri[]> callback,FileChooserParams params){
                 if(fileCallback!=null)fileCallback.onReceiveValue(null);
                 fileCallback=callback;
@@ -111,6 +130,11 @@ public final class MainActivity extends Activity {
         ));
         if (Build.VERSION.SDK_INT >= 35) root.requestApplyInsets();
         web.loadUrl(ORIGIN+"/index.html");
+    }
+    private void nativeStartupFailure(String message){
+        runOnUiThread(()->new AlertDialog.Builder(this).setTitle("راه‌اندازی دنگ ناموفق بود")
+            .setMessage(message).setPositiveButton("تلاش مجدد",(d,w)->recreate())
+            .setNegativeButton("بستن",(d,w)->finish()).show());
     }
     private final class LocalBridge {
         @JavascriptInterface public String invoke(String json){
@@ -163,7 +187,7 @@ public final class MainActivity extends Activity {
         }
     }
     private void documentResult(String id,boolean success,String message){
-        if(id==null)return;
+        if(id==null||web==null)return;
         String script="window.dangNativeDocumentResult && window.dangNativeDocumentResult("+JSONObject.quote(id)+","+success+","+JSONObject.quote(message==null?"":message)+")";
         web.post(()->web.evaluateJavascript(script,null));
     }

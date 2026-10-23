@@ -1,5 +1,11 @@
 import {isNativeAndroid,nativeRequest,saveAndroidDocument,createAndroidEncryptedBackup,readAndroidEncryptedBackup} from './native-bridge';
 import {initialStore,Store} from './types';
+// @ts-ignore shared native financial validation
+import {validateStore} from './native-validate.mjs';
+// @ts-ignore shared projection
+import {project} from './native-ledger.mjs';
+// @ts-ignore shared backup integrity
+import {storeDigest} from './backup-codec.mjs';
 
 // Android builds use native SQLite via the app bridge; the Termux web build uses the local API. Never use browser data as the ledger.
 export type BackupPolicy='change'|'hourly'|'daily'|'off';
@@ -53,8 +59,20 @@ export async function exportEncryptedSqlite(passphrase:string):Promise<{filename
  return api('/api/backups/external','POST',{passphrase});
 }
 export async function importEncryptedSqlite(envelope:unknown,passphrase:string):Promise<Store>{
- if(isNativeAndroid()){const raw=await readAndroidEncryptedBackup(envelope,passphrase);const restored=fromEnvelope(raw);await restoreStore(restored);return restored;}
+ if(isNativeAndroid()){
+  const {store:restored,digest}=await inspectEncryptedAndroidBackup(envelope,passphrase);
+  await restoreStore(restored);
+  const saved=await loadStore();
+  if(await storeDigest(saved)!==digest)throw Error('تطبیق اطلاعات پس از بازیابی ناموفق بود؛ استفاده مالی را متوقف کنید و گزارش بگیرید.');
+  return saved;
+ }
  const result=await api<{revision:number,store:Store}>('/api/backups/external/restore','POST',{envelope,passphrase,expectedRevision:revision});revision=result.revision;return normalizeStore(result.store);
 }
 
 export async function reviseMonthlyObligation(memberId:string,period:string,newAmount:number,reason:string):Promise<Store>{const result=await api<{revision:number,store:Store}>('/api/obligation-adjust','POST',{memberId,period,newAmount,reason,expectedRevision:revision});revision=result.revision;return normalizeStore(result.store)}
+
+export async function inspectEncryptedAndroidBackup(envelope:unknown,passphrase:string){
+ const store=fromEnvelope(await readAndroidEncryptedBackup(envelope,passphrase));
+ validateStore(store);const summary=project(store);
+ return {store,digest:await storeDigest(store),events:store.events.length,plans:store.plans.length,members:store.members.length,totalCash:summary.totalCash};
+}

@@ -3,19 +3,36 @@ android {
     namespace 'ir.dang.household'
     compileSdk 35
     defaultConfig {
-        applicationId 'ir.dang.household'
+        applicationId providers.gradleProperty('dangApplicationId').getOrElse('ir.dang.household')
         minSdk 26
         targetSdk 35
-        versionCode 11
-        versionName '7.2.0-alpha'
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        versionCode 12
+        versionName '7.3.0-alpha'
+    }
+    signingConfigs {
+        stable {
+            if (System.getenv('DANG_KEYSTORE_PATH')) {
+                storeFile file(System.getenv('DANG_KEYSTORE_PATH'))
+                storePassword System.getenv('DANG_KEYSTORE_PASSWORD')
+                keyAlias System.getenv('DANG_KEY_ALIAS')
+                keyPassword System.getenv('DANG_KEY_PASSWORD')
+            }
+        }
     }
     buildTypes {
-        release { minifyEnabled false }
+        release { minifyEnabled false; signingConfig signingConfigs.stable }
         debug {
             minifyEnabled false
-            // Separate package: installs beside an older APK with a different signing key.
-            applicationIdSuffix '.preview72'
+            // Diagnostic build only; never claim this is an in-place upgrade.
+            applicationIdSuffix '.preview73'
         }
     }
     compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
+}
+
+dependencies {
+    androidTestImplementation 'androidx.test:runner:1.6.2'
+    androidTestImplementation 'androidx.test:rules:1.6.1'
+    androidTestImplementation 'androidx.test.ext:junit:1.2.1'
 }
