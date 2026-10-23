@@ -49,9 +49,13 @@ public class StartupTest {
   try(android.os.ParcelFileDescriptor mkdir=InstrumentationRegistry.getInstrumentation().getUiAutomation().executeShellCommand("mkdir -p /sdcard/Download/dang73")){
    new android.os.ParcelFileDescriptor.AutoCloseInputStream(mkdir).readAllBytes();
   }
-  android.os.ParcelFileDescriptor[] pipes=InstrumentationRegistry.getInstrumentation().getUiAutomation().executeShellCommandRw("sh -c 'cat > /sdcard/Download/dang73/"+name+"'");
+  android.os.ParcelFileDescriptor[] pipes=InstrumentationRegistry.getInstrumentation().getUiAutomation().executeShellCommandRw("dd of=/sdcard/Download/dang73/"+name);
   try(android.os.ParcelFileDescriptor.AutoCloseOutputStream out=new android.os.ParcelFileDescriptor.AutoCloseOutputStream(pipes[1])){out.write(bytes);}
   try(android.os.ParcelFileDescriptor.AutoCloseInputStream in=new android.os.ParcelFileDescriptor.AutoCloseInputStream(pipes[0])){in.readAllBytes();}
+  try(android.os.ParcelFileDescriptor check=InstrumentationRegistry.getInstrumentation().getUiAutomation().executeShellCommand("stat -c %s /sdcard/Download/dang73/"+name)){
+   String size=new String(new android.os.ParcelFileDescriptor.AutoCloseInputStream(check).readAllBytes(),java.nio.charset.StandardCharsets.UTF_8).trim();
+   assertEquals("Evidence bytes must survive test APK uninstall",bytes.length,Long.parseLong(size));
+  }
  }
  private void screenshot(String name) throws Exception {
   Bitmap image=InstrumentationRegistry.getInstrumentation().getUiAutomation().takeScreenshot();
