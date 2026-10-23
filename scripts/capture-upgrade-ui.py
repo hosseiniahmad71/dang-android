@@ -18,7 +18,8 @@ def click_text(text,name):
 def shot(name):
  state(name);(root/(name+'.png')).write_bytes(adb('exec-out','screencap','-p'))
 try:
- adb('shell','am','start','-n','ir.dang.household/.MainActivity');time.sleep(2);shot('01-updated-dashboard')
+ adb('shell','am','force-stop','com.google.android.apps.nexuslauncher')
+ adb('shell','am','start','-n','ir.dang.household/.MainActivity');time.sleep(3);shot('01-updated-dashboard')
  click_text('آبان','period');shot('02-period-dialog')
  tree=state('search');edit=next(n for n in tree.iter('node') if n.attrib.get('class')=='android.widget.EditText');click_node(edit);shot('03-period-keyboard')
  adb('shell','input','keyevent','4');click_text('بستن فهرست','close');click_text('ثبت عملیات','operations');click_text('تسویه و اصلاح','settlement');click_text('راهنما و مثال انتقال اعتبار','help');shot('04-settlement-help')
