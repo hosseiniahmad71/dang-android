@@ -70,6 +70,17 @@ public class StartupTest {
   scenario.getScenario().recreate();
   until("document.querySelector('.app-shell') && document.getElementById('startup-panel').hidden");assertEquals(2,eventCount());
   assertEquals("9900000",js("var s=JSON.parse(DangNative.invoke(JSON.stringify({op:'get'}))).value.store;return s.events[0].amount-s.events[1].amount"));
+  String migrationScript;
+  try(java.io.InputStream in=InstrumentationRegistry.getInstrumentation().getContext().getAssets().open("migration-test.js")){
+   migrationScript=new String(in.readAllBytes(),java.nio.charset.StandardCharsets.UTF_8);
+  }
+  final String injected=migrationScript;
+  scenario.getScenario().onActivity(a->find(a.getWindow().getDecorView()).evaluateJavascript(injected,null));
+  js("window.dangMigrationTest().then(x=>window.migrationResult=x).catch(e=>window.migrationFailure=String(e));return true");
+  until("window.migrationResult || window.migrationFailure");
+  assertEquals("undefined",js("return typeof window.migrationFailure"));
+  assertEquals("2",js("return window.migrationResult.events"));
+  assertEquals("1",js("return window.migrationResult.plans"));
   // Verify the module-independent guard can report a fatal runtime error and retry safely.
   js("window.dangStartup.fail(new Error('instrumented startup failure'));return true");
   until("!document.getElementById('startup-panel').hidden && !document.getElementById('startup-actions').hidden");screenshot("05-error-recovery");

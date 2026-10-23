@@ -41,7 +41,7 @@ jobs:
       - name: Install web dependencies
         run: npm ci --no-audit --no-fund
       - name: Run web type check and compile
-        run: npm run build:android
+        run: npm run build:android && node scripts/build-android-test.mjs
       - name: Verify finance runtime
         run: npm run test:native
       - name: Test Android system bars regression contract
@@ -75,16 +75,16 @@ jobs:
           target: google_apis
           disable-animations: true
           script: |
+            mkdir -p runtime-evidence
+            trap 'adb logcat -d > runtime-evidence/logcat.txt 2>&1; adb pull /sdcard/Android/data/ir.dang.household.preview73/files runtime-evidence/screenshots || true' EXIT
             adb logcat -c
             adb shell svc wifi disable
             adb shell svc data disable
-            cd android && gradle --no-daemon connectedDebugAndroidTest
+            gradle -p android --no-daemon connectedDebugAndroidTest
       - name: Collect runtime evidence
         if: always()
         run: |
           mkdir -p runtime-evidence
-          adb logcat -d > runtime-evidence/logcat.txt 2>&1 || true
-          adb pull /sdcard/Android/data/ir.dang.household.preview73/files runtime-evidence/screenshots || true
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs android/app/build/outputs/apk/debug/app-debug.apk > runtime-evidence/signature.txt
           sha256sum android/app/build/outputs/apk/debug/app-debug.apk > runtime-evidence/SHA256SUMS.txt
       - uses: actions/upload-artifact@v4

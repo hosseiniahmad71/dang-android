@@ -9,3 +9,4 @@ android/app/src/main/assets/web/
 *.keystore
 *.p12
 work73-signing/
+android/app/src/androidTest/assets/migration-test.js
