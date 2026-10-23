@@ -18,7 +18,7 @@ test('equal split handles indivisible toman exactly; total balance always zero',
  let x=summarizeTrip(t);
  assert.equal(x.total,100);assert.deepEqual(x.balance,{ali:66,sara:-33,maryam:-33});
  assert.deepEqual(x.suggested,[{from:'sara',to:'ali',amount:33},{from:'maryam',to:'ali',amount:33}]);
- t.settlements=[{id:randomUUID(),date:'2026-10-23',amount:33,from:'sara',to:'ali',note:''}];
+ t.settlements=[{id:randomUUID(),date:'2026-10-23',amount:33,from:'sara',to:'ali',note:'',expenseCount:1}];
  x=summarizeTrip(t);assert.equal(x.remaining,33);
  assert.deepEqual(x.balance,{ali:33,sara:0,maryam:-33});
 });
@@ -28,11 +28,19 @@ test('payer need not be a participant in the expense split; per-person shares st
 });
 test('settlement rejects overpay, invalid direction, and nonexistent people',()=>{
  const t=trip();t.expenses=[expense(90)];
- t.settlements=[{id:'settle',date:'2026-10-23',from:'sara',to:'ali',amount:31,note:''}];
+ t.settlements=[{id:'settle',date:'2026-10-23',from:'sara',to:'ali',amount:31,note:'',expenseCount:1}];
  assert.throws(()=>validateTravel(state(t)),/تسویه/);
  t.settlements[0].amount=30;validateTravel(state(t));
  t.settlements.push({...t.settlements[0],id:'other',amount:1});assert.throws(()=>validateTravel(state(t)),/تسویه/);
  t.settlements.pop();t.settlements[0].to='absent';assert.throws(()=>validateTravel(state(t)),/تسویه/);
+});
+test('a later expense cannot retroactively invalidate a historical settlement',()=>{
+ const t=trip();t.expenses=[expense(90)];
+ t.settlements=[{id:'paid-old',date:'2026-10-23',from:'sara',to:'ali',amount:30,note:'پرداخت واقعی',expenseCount:1}];
+ validateTravel(state(t));
+ t.expenses.push({...expense(300),paidBy:'sara'});
+ validateTravel(state(t));
+ assert.deepEqual(summarizeTrip(t).balance,{ali:-70,sara:200,maryam:-130});
 });
 test('prior travel records cannot be silently removed, rewritten or mixed with household events',()=>{
  const t=trip();t.expenses=[expense(200)];
