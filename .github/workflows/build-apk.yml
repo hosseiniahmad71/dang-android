@@ -1,4 +1,4 @@
-name: Build Dang Android APK
+name: Validate Dong Android V1 (NOT INSTALLABLE)
 on:
   workflow_dispatch:
   pull_request:
@@ -7,7 +7,7 @@ on:
     branches: [main, work/7.3.2-stable-release-backup-governance]
     paths-ignore: ["docs/**", "tests/upgrade-apks/**", ".github/workflows/verify-signed-upgrade.yml"]
 concurrency:
-  group: dang-validation-${{ github.workflow }}-${{ github.ref }}
+  group: dong-validation-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 jobs:
   android:
@@ -68,7 +68,7 @@ jobs:
           python3 scripts/verify-apk.py android/app/build/outputs/apk/release/app-release.apk --aapt "$ANDROID_HOME/build-tools/35.0.0/aapt" --expected-package ir.dang.household | tee runtime-evidence/apk-metadata.json
       - uses: actions/upload-artifact@v4
         with:
-          name: Dang-v7.3.2-CI-VALIDATION-ONLY-DO-NOT-INSTALL
+          name: Dong-V1.0.0-CI-VALIDATION-ONLY-DO-NOT-INSTALL
           path: |
             android/app/build/outputs/apk/release/app-release.apk
             android/app/build/outputs/apk/androidTest/release/app-release-androidTest.apk
@@ -100,7 +100,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: Dang-v7.3.2-runtime-evidence
+          name: Dong-V1.0.0-runtime-evidence
           path: |
             runtime-evidence/
             android/app/build/reports/androidTests/
