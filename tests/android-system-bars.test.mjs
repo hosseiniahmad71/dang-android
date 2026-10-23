@@ -4,6 +4,7 @@ import {readFileSync} from 'node:fs';
 
 const main = readFileSync('android/app/src/main/java/ir/dang/household/MainActivity.java', 'utf8');
 const gradle = readFileSync('android/app/build.gradle','utf8');
+const release = JSON.parse(readFileSync('release/release.json','utf8'));
 
 test('Native WebView preserves Android system bars and safe cutout bounds', () => {
   assert.match(main,/new FrameLayout\(this\)/);
@@ -14,6 +15,6 @@ test('Native WebView preserves Android system bars and safe cutout bounds', () =
   assert.match(main,/View\.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR/);
   assert.doesNotMatch(main,/View\.SYSTEM_UI_FLAG_FULLSCREEN\b/);
   assert.doesNotMatch(main,/View\.SYSTEM_UI_FLAG_HIDE_NAVIGATION\b/);
-  assert.match(gradle,/versionCode 16/);
-  assert.match(gradle,/versionName '1\.0\.0'/);
+  assert.ok(gradle.includes('versionCode '+release.versionCode));
+  assert.ok(gradle.includes("versionName '"+release.versionName+"'"));
 });
