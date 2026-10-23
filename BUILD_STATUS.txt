@@ -1,8 +1,0 @@
-Dang Android v7 alpha — build-ready source, not APK
-Native JS domain tests: 8/8 PASS (including 12-month synthetic accounting)
-Android Gradle assembleDebug: NOT RUN (Android SDK / Gradle absent in workspace)
-React TypeScript/Vite full build: NOT RUN (npm dependencies unavailable offline)
-Android Java/WebView real-device tests: NOT RUN
-Storage: app-private native SQLite; no browser dependency; no server needed
-Backup: encrypted JSON via Android document picker; not an encrypted SQLite binary
-Signing: GitHub Actions debug keystore; use release keystore before distribution

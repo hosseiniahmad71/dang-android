@@ -1,0 +1,14 @@
+node_modules/
+dist/
+*.tsbuildinfo
+android/.gradle/
+android/local.properties
+android/**/build/
+android/app/src/main/assets/web/
+*.jks
+*.keystore
+*.p12
+work73-signing/
+android/app/src/androidTest/assets/migration-test.js
+
+android/app/src/androidTest/assets/upgrade-store.json

@@ -1,7 +1,8 @@
 export const MIN_FINANCIAL_PERIOD='1405/07';
-export const MIN_FINANCIAL_DATE=toIsoFromJalali(1405,7,1);
 export const MONTHS = ['فروردین','اردیبهشت','خرداد','تیر','مرداد','شهریور','مهر','آبان','آذر','دی','بهمن','اسفند'];
 const persianCalendar = new Intl.DateTimeFormat('en-US-u-ca-persian', {year:'numeric',month:'numeric',day:'numeric',timeZone:'UTC'});
+// The calendar must exist before this conversion runs during module evaluation.
+export const MIN_FINANCIAL_DATE=toIsoFromJalali(1405,7,1);
 export function jalaliParts(iso:string):{year:number,month:number,day:number}{
   const date = new Date(`${iso}T12:00:00.000Z`);
   if(!Number.isFinite(date.getTime())) return {year:1405,month:7,day:1};

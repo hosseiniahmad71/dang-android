@@ -1,5 +1,11 @@
-import {isNativeAndroid,nativeRequest,saveAndroidDocument,createAndroidEncryptedBackup,readAndroidEncryptedBackup} from './native-bridge';
+import {isNativeAndroid,nativeRequest,saveAndroidDocument,createAndroidEncryptedBackup,readAndroidEncryptedBackup,createAndroidPortableBackup} from './native-bridge';
 import {initialStore,Store} from './types';
+// @ts-ignore shared native financial validation
+import {validateStore} from './native-validate.mjs';
+// @ts-ignore shared projection
+import {project} from './native-ledger.mjs';
+// @ts-ignore shared backup integrity
+import {storeDigest} from './backup-codec.mjs';
 
 // Android builds use native SQLite via the app bridge; the Termux web build uses the local API. Never use browser data as the ledger.
 export type BackupPolicy='change'|'hourly'|'daily'|'off';
@@ -36,9 +42,9 @@ export async function pruneBackups():Promise<void>{/* SQLite server enforces the
 export async function readBackupStore(id:string):Promise<Store>{const data=await api<{store:Store}>(`/api/backups/${encodeURIComponent(id)}/store`);return normalizeStore(data.store)}
 export async function restoreStore(s:Store){const data=await api<{revision:number}>('/api/restore','POST',{store:s,expectedRevision:revision});revision=data.revision}
 export function exportFile(store:Store){
- if(isNativeAndroid()){void saveAndroidDocument(`dang-${new Date().toISOString().replace(/[:.]/g,'-')}.json`,JSON.stringify(makeEnvelope(store),null,2)).catch(e=>alert(String(e)));return;}
+ if(isNativeAndroid()){void saveAndroidDocument(`dong-${new Date().toISOString().replace(/[:.]/g,'-')}.json`,JSON.stringify(makeEnvelope(store),null,2)).catch(e=>alert(String(e)));return;}
  const blob=new Blob([JSON.stringify(makeEnvelope(store),null,2)],{type:'application/json'});
- const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=`dang-${new Date().toISOString().slice(0,19).replaceAll(':','-')}.json`;
+ const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=`dong-${new Date().toISOString().slice(0,19).replaceAll(':','-')}.json`;
  document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),2000);
 }
 
@@ -53,8 +59,59 @@ export async function exportEncryptedSqlite(passphrase:string):Promise<{filename
  return api('/api/backups/external','POST',{passphrase});
 }
 export async function importEncryptedSqlite(envelope:unknown,passphrase:string):Promise<Store>{
- if(isNativeAndroid()){const raw=await readAndroidEncryptedBackup(envelope,passphrase);const restored=fromEnvelope(raw);await restoreStore(restored);return restored;}
+ if(isNativeAndroid()){
+  const {store:restored,digest}=await inspectEncryptedAndroidBackup(envelope,passphrase);
+  await restoreStore(restored);
+  const saved=await loadStore();
+  if(await storeDigest(saved)!==digest)throw Error('تطبیق اطلاعات پس از بازیابی ناموفق بود؛ استفاده مالی را متوقف کنید و گزارش بگیرید.');
+  return saved;
+ }
  const result=await api<{revision:number,store:Store}>('/api/backups/external/restore','POST',{envelope,passphrase,expectedRevision:revision});revision=result.revision;return normalizeStore(result.store);
 }
 
 export async function reviseMonthlyObligation(memberId:string,period:string,newAmount:number,reason:string):Promise<Store>{const result=await api<{revision:number,store:Store}>('/api/obligation-adjust','POST',{memberId,period,newAmount,reason,expectedRevision:revision});revision=result.revision;return normalizeStore(result.store)}
+
+export async function inspectEncryptedAndroidBackup(envelope:unknown,passphrase:string){
+ const store=fromEnvelope(await readAndroidEncryptedBackup(envelope,passphrase));
+ validateStore(store);const summary=project(store);
+ return {store,digest:await storeDigest(store),events:store.events.length,plans:store.plans.length,members:store.members.length,totalCash:summary.totalCash};
+}
+
+/** New exports are plaintext, password-free and contain the entire audited ledger state.
+ * Do not confuse an SHA-256 integrity check with authenticated encryption.
+ */
+export async function exportPortableBackup():Promise<{filename:string,location:string,size:number}>{
+ const store=await loadStore();
+ if(isNativeAndroid())return createAndroidPortableBackup(store);
+ // @ts-ignore audited JavaScript module (no TypeScript declaration file)
+ const {encodePortableBackup}=await import('./backup-codec.mjs');
+ const content=JSON.stringify(await encodePortableBackup(store),null,2);
+ const filename=`dong-${new Date().toISOString().replace(/[:.]/g,'-')}.dangbak`;
+ const blob=new Blob([content],{type:'application/json'});
+ const url=URL.createObjectURL(blob),anchor=document.createElement('a');
+ try{anchor.href=url;anchor.download=filename;document.body.append(anchor);anchor.click();anchor.remove();}
+ finally{setTimeout(()=>URL.revokeObjectURL(url),2000)}
+ return {filename,location:'فایل انتخاب‌شده در مرورگر',size:content.length};
+}
+export async function inspectPortableBackup(envelope:unknown,legacyPassword?:string){
+ let raw:unknown;
+ if(envelope&&typeof envelope==='object'&&(envelope as {format?:string}).format==='dang-android-encrypted'){
+  if(!legacyPassword||legacyPassword.length<12)throw Error('این فایل قدیمی رمزگذاری شده است؛ رمز اصلی آن لازم است.');
+  raw=await readAndroidEncryptedBackup(envelope,legacyPassword);
+ }else{
+  // @ts-ignore audited JavaScript module (no TypeScript declaration file)
+  const {decodePortableBackup}=await import('./backup-codec.mjs');
+  raw=await decodePortableBackup(envelope);
+ }
+ const store=fromEnvelope(raw);
+ validateStore(store);
+ const summary=project(store);
+ return {store,digest:await storeDigest(store),events:store.events.length,plans:store.plans.length,members:store.members.length,totalCash:summary.totalCash};
+}
+export async function importPortableBackup(envelope:unknown,legacyPassword?:string):Promise<Store>{
+ const {store,digest}=await inspectPortableBackup(envelope,legacyPassword);
+ await restoreStore(store); // Native runtime snapshots before and after restore, transactionally.
+ const saved=await loadStore();
+ if(await storeDigest(saved)!==digest)throw Error('تطبیق داده پس از بازیابی ناموفق بود؛ داده را بررسی کنید.');
+ return saved;
+}

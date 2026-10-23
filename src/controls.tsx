@@ -1,15 +1,32 @@
-import {useEffect,useRef,useState} from 'react';
+import {useEffect,useLayoutEffect,useId,useRef,useState} from 'react';
+import {createPortal} from 'react-dom';
 import {CalendarDays,ChevronDown,ChevronLeft,ChevronRight,Search,X} from 'lucide-react';
 import {MONTHS,MIN_FINANCIAL_PERIOD,MIN_FINANCIAL_DATE,currentIso,daysInJalaliMonth,digitsToEnglish,fnum,jalaliLabel,jalaliParts,offsetMonth,parseToman,toIsoFromJalali,tomanWords} from './utils';
 export type Option={value:string,label:string};
 export function SearchSelect({label,value,onChange,options,placeholder='جست‌وجو و انتخاب...',disabled=false}:{label:string,value:string,onChange:(x:string)=>void,options:Option[],placeholder?:string,disabled?:boolean}){
- const [open,setOpen]=useState(false),[query,setQuery]=useState(''),[focusIndex,setFocusIndex]=useState(0);
- const root=useRef<HTMLDivElement>(null),input=useRef<HTMLInputElement>(null);
- useEffect(()=>{const close=(e:PointerEvent)=>{if(root.current&&!root.current.contains(e.target as Node))setOpen(false)};document.addEventListener('pointerdown',close);return()=>document.removeEventListener('pointerdown',close)},[]);
+ const [open,setOpen]=useState(false),[query,setQuery]=useState(''),[focusIndex,setFocusIndex]=useState(-1);
+ const [compact,setCompact]=useState(()=>window.matchMedia('(max-width:900px)').matches);
+ const root=useRef<HTMLDivElement>(null),input=useRef<HTMLInputElement>(null),menu=useRef<HTMLDivElement>(null),dialog=useRef<HTMLDialogElement>(null),trigger=useRef<HTMLButtonElement>(null);
+ const titleId=useId();
+ useEffect(()=>{const mq=window.matchMedia('(max-width:900px)'),resize=()=>setCompact(mq.matches);mq.addEventListener('change',resize);return()=>mq.removeEventListener('change',resize)},[]);
+ useEffect(()=>{const close=(e:PointerEvent)=>{const n=e.target as Node;if(root.current&&!root.current.contains(n)&&!menu.current?.contains(n)&&!dialog.current?.contains(n))setOpen(false)};document.addEventListener('pointerdown',close);return()=>document.removeEventListener('pointerdown',close)},[]);
+ useLayoutEffect(()=>{
+  if(!open||!compact)return;
+  const d=dialog.current;if(!d)return;
+  const previous=document.body.style.overflow;document.body.style.overflow='hidden';
+  const resize=()=>{const v=window.visualViewport,h=v?.height||window.innerHeight;d.style.top=`${(v?.offsetTop||0)+12}px`;d.style.setProperty('--select-max-height',`${Math.max(160,h-24)}px`)};
+  resize();d.showModal();window.visualViewport?.addEventListener('resize',resize);window.visualViewport?.addEventListener('scroll',resize);
+  return()=>{window.visualViewport?.removeEventListener('resize',resize);window.visualViewport?.removeEventListener('scroll',resize);document.body.style.overflow=previous;if(d.open)d.close();trigger.current?.focus({preventScroll:true})};
+ },[open,compact]);
  const filtered=options.filter(o=>o.label.includes(query.trim())||digitsToEnglish(o.label).includes(digitsToEnglish(query.trim())));
- function toggle(){if(disabled)return;setOpen(v=>!v);setQuery('');setFocusIndex(0);setTimeout(()=>input.current?.focus(),0)}
+ function toggle(){if(disabled)return;setOpen(v=>!v);setQuery('');setFocusIndex(-1);if(!compact)setTimeout(()=>input.current?.focus({preventScroll:true}),0)}
  function pick(v:string){onChange(v);setOpen(false);setQuery('')}
- return <div className="control" ref={root}><label className="field-label">{label}</label><button type="button" aria-expanded={open} disabled={disabled} className={`select-trigger ${open?'focus':''}`} onClick={toggle}><span>{options.find(o=>o.value===value)?.label||'انتخاب کنید'}</span><ChevronDown size={17}/></button>{open&&<div className="search-menu"><div className="search-wrap"><Search size={17}/><input ref={input} value={query} placeholder={placeholder} onChange={e=>{setQuery(e.target.value);setFocusIndex(0)}} onKeyDown={e=>{if(e.key==='Escape'){setOpen(false)}else if(e.key==='ArrowDown'){e.preventDefault();setFocusIndex(i=>Math.min(filtered.length-1,i+1))}else if(e.key==='ArrowUp'){e.preventDefault();setFocusIndex(i=>Math.max(0,i-1))}else if(e.key==='Enter'&&filtered[focusIndex]){e.preventDefault();pick(filtered[focusIndex].value)}}}/><button type="button" className="icon-button tiny" aria-label="بستن فهرست" onClick={()=>setOpen(false)}><X size={16}/></button></div><div className="select-items" role="listbox">{filtered.length?filtered.map((o,i)=><button role="option" aria-selected={o.value===value} type="button" key={o.value} className={`${o.value===value?'picked':''} ${i===focusIndex?'hovered':''}`} onClick={()=>pick(o.value)}>{o.label}</button>):<div className="empty-result">نتیجه‌ای پیدا نشد.</div>}</div></div>}</div>
+ const popup=<div className="search-menu" ref={menu} dir="rtl">
+  {compact&&<div className="search-dialog-heading"><h2 id={titleId}>{label}</h2><button type="button" autoFocus className="icon-button" aria-label="بستن فهرست" onClick={()=>setOpen(false)}><X size={20}/></button></div>}
+  <div className="search-wrap"><Search size={18}/><input ref={input} value={query} aria-label={`جست‌وجو در ${label}`} placeholder={placeholder} onChange={e=>{setQuery(e.target.value);setFocusIndex(-1)}} onKeyDown={e=>{if(e.key==='Escape'){setOpen(false)}else if(e.key==='ArrowDown'){e.preventDefault();setFocusIndex(i=>Math.min(filtered.length-1,i+1))}else if(e.key==='ArrowUp'){e.preventDefault();setFocusIndex(i=>Math.max(0,i-1))}else if(e.key==='Enter'&&filtered[focusIndex]){e.preventDefault();pick(filtered[focusIndex].value)}}}/>{!compact&&<button type="button" className="icon-button tiny" aria-label="بستن فهرست" onClick={()=>setOpen(false)}><X size={16}/></button>}</div>
+  <div className="select-items" role="listbox" aria-label={label}>{filtered.length?filtered.map((o,i)=><button role="option" aria-selected={o.value===value} type="button" key={o.value} className={`${o.value===value?'picked':''} ${i===focusIndex?'hovered':''}`} onClick={()=>pick(o.value)}>{o.label}</button>):<div className="empty-result">نتیجه‌ای پیدا نشد.</div>}</div>
+ </div>;
+ return <div className="control" ref={root}><label className="field-label">{label}</label><button ref={trigger} type="button" aria-expanded={open} aria-haspopup={compact?'dialog':'listbox'} disabled={disabled} className={`select-trigger ${open?'focus':''}`} onClick={toggle}><span>{options.find(o=>o.value===value)?.label||'انتخاب کنید'}</span><ChevronDown size={17}/></button>{open&&(compact?createPortal(<dialog ref={dialog} className="search-dialog" aria-labelledby={titleId} onCancel={()=>setOpen(false)} onClose={()=>setOpen(false)} onClick={e=>{if(e.target===e.currentTarget)setOpen(false)}}>{popup}</dialog>,document.body):popup)}</div>
 }
 export function MoneyInput({label,value,onChange,placeholder='مثلاً ۲٬۵۰۰٬۰۰۰',note}:{label:string,value:string,onChange:(v:string)=>void,placeholder?:string,note?:string}){
  const number=parseToman(value);

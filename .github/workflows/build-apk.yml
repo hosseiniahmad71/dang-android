@@ -1,11 +1,18 @@
-name: Build Dang Android APK
+name: Validate Dong Android (NOT INSTALLABLE)
 on:
   workflow_dispatch:
+  pull_request:
+    branches: [main]
   push:
     branches: [main]
+    paths-ignore: ["docs/**", "tests/upgrade-apks/**"]
+concurrency:
+  group: dong-validation-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   android:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     permissions:
       contents: read
     steps:
@@ -29,23 +36,73 @@ jobs:
           "$SDKMANAGER" --install 'platforms;android-35' 'build-tools;35.0.0'
           test -f "${ANDROID_HOME}/platforms/android-35/android.jar"
       - name: Install web dependencies
-        run: npm install --no-audit --no-fund
+        run: npm ci --no-audit --no-fund
       - name: Run web type check and compile
-        run: npm run build:android
+        run: npm run build:android && node scripts/build-android-test.mjs
+      - name: Enforce fixed application identity and release governance
+        run: node --test tests/android-release-identity.test.mjs
       - name: Verify finance runtime
         run: npm run test:native
       - name: Test Android system bars regression contract
         run: node --test tests/android-system-bars.test.mjs
-      - name: Verify separate-install package identity
-        run: node --test tests/android-parallel-install.test.mjs
       - name: Audit 500 transactions in each of 1, 3 and 6 month windows
         run: node --test tests/finance-v71.test.mjs tests/v71-ui-contract.test.mjs
       - name: Test financial start boundary, card-owner attribution and cancellation history
         run: node --test tests/v72-period-purchase-history.test.mjs
-      - name: Build signed debug APK
-        run: cd android && gradle --no-daemon assembleDebug
+      - name: Run complete regression suite
+        run: node --test tests/*.test.mjs tests/ui-contract.test.cjs
+      - name: Prepare disposable CI-only validation signer
+        run: |
+          keytool -genkeypair -noprompt -keystore "$RUNNER_TEMP/dang-validation.jks" -storepass ci-validation-only -keypass ci-validation-only -alias validation -keyalg RSA -keysize 2048 -validity 2 -dname 'CN=CI validation only'
+          echo "DANG_KEYSTORE_PATH=$RUNNER_TEMP/dang-validation.jks" >> "$GITHUB_ENV"
+          echo 'DANG_KEYSTORE_PASSWORD=ci-validation-only' >> "$GITHUB_ENV"
+          echo 'DANG_KEY_ALIAS=validation' >> "$GITHUB_ENV"
+          echo 'DANG_KEY_PASSWORD=ci-validation-only' >> "$GITHUB_ENV"
+      - name: Build release payload for runtime validation
+        run: cd android && gradle --no-daemon assembleRelease assembleReleaseAndroidTest -PdangTestBuildType=release
+      - name: Verify actual APK package, assets and ZIP integrity
+        run: |
+          mkdir -p runtime-evidence
+          python3 scripts/verify-apk.py android/app/build/outputs/apk/release/app-release.apk --aapt "$ANDROID_HOME/build-tools/35.0.0/aapt" --expected-package ir.dang.household | tee runtime-evidence/apk-metadata.json
       - uses: actions/upload-artifact@v4
         with:
-          name: Dang-v7.2.0-period-history-debug-apk
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          name: Dong-CI-VALIDATION-ONLY-DO-NOT-INSTALL
+          path: |
+            android/app/build/outputs/apk/release/app-release.apk
+            android/app/build/outputs/apk/androidTest/release/app-release-androidTest.apk
           if-no-files-found: error
+
+      - name: Enable KVM for Android runtime tests
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Execute real Android WebView and SQLite tests
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          arch: x86_64
+          target: google_apis
+          disable-animations: true
+          script: bash scripts/run-android-test.sh
+      - name: Collect runtime evidence
+        if: always()
+        run: |
+          mkdir -p runtime-evidence
+          if test -f android/app/build/outputs/apk/release/app-release.apk; then
+            "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs android/app/build/outputs/apk/release/app-release.apk > runtime-evidence/signature.txt
+            sha256sum android/app/build/outputs/apk/release/app-release.apk > runtime-evidence/SHA256SUMS.txt
+          else
+            echo "No APK was built; previous test step failed." > runtime-evidence/INCOMPLETE.txt
+          fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Dong-validation-runtime-evidence
+          path: |
+            runtime-evidence/
+            android/app/build/reports/androidTests/
+            android/app/build/outputs/androidTest-results/
+      - name: Remove disposable CI key
+        if: always()
+        run: rm -f "$RUNNER_TEMP/dang-validation.jks"
