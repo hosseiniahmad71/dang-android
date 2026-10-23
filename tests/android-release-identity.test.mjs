@@ -8,8 +8,8 @@ test('stable release identity, strictly increasing version and signer gate',()=>
  assert.ok(gradle.includes("applicationId 'ir.dang.household'"));
  for(const legacy of ['applicationIdSuffix','dangApplicationId','preview71','preview72','preview73'])
    assert.ok(!gradle.includes(legacy),'Forbidden release identity override: '+legacy);
- assert.ok(gradle.includes('versionCode 15'));
- assert.ok(gradle.includes("versionName '7.3.2'"));
+ assert.ok(gradle.includes('versionCode 16'));
+ assert.ok(gradle.includes("versionName '1.0.0'"));
  assert.ok(manifest.includes('android:label="@string/app_name"'));
  assert.ok(!manifest.includes('android:sharedUserId'));
  assert.ok(release.includes('2b468a624312d5db6028984714f8c9663f6873c87c9a950c5fe0fc6787416108'));
