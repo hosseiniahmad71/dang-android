@@ -4,12 +4,12 @@ android {
     compileSdk 35
     testBuildType providers.gradleProperty('dangTestBuildType').getOrElse('debug')
     defaultConfig {
-        applicationId providers.gradleProperty('dangApplicationId').getOrElse('ir.dang.household')
+        applicationId 'ir.dang.household'
         minSdk 26
         targetSdk 35
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
-        versionCode 14
-        versionName '7.3.1'
+        versionCode 15
+        versionName '7.3.2'
     }
     signingConfigs {
         stable {
@@ -25,8 +25,6 @@ android {
         release { minifyEnabled false; signingConfig signingConfigs.stable }
         debug {
             minifyEnabled false
-            // Diagnostic build only; never claim this is an in-place upgrade.
-            applicationIdSuffix '.preview73'
         }
     }
     compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
