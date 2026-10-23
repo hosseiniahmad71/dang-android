@@ -254,8 +254,8 @@ function OperationsView({store,operation,setOperation,save,saveMany,savePlan,per
 function App(){
  const [store,setStore]=useState<Store>(()=>structuredClone(initialStore)),[loaded,setLoaded]=useState(false),[page,setPage]=useState<Page>('dashboard'),[operation,setOperation]=useState<Operation>('purchase'),[period,setPeriod]=useState(jalaliKey(currentIso())),[toast,setToast]=useState(''),[failure,setFailure]=useState(''),[saveState,setSaveState]=useState('در حال باز کردن پایگاه داده...');
  const predicted=useRef<Store>(structuredClone(initialStore)),persisted=useRef<Store>(structuredClone(initialStore)),queue=useRef<Promise<void>>(Promise.resolve()),failed=useRef(false);
- useEffect(()=>{let mounted=true;loadStore().then(s=>{if(!mounted)return;predicted.current=s;persisted.current=s;setStore(s);setLoaded(true);setSaveState('SQLite مستقل آماده است')}).catch(e=>{if(!mounted)return;setFailure('باز کردن دیتابیس مستقل ممکن نشد: '+String(e));setSaveState('خطای دیتابیس');window.dangStartup?.fail(e)});return()=>{mounted=false}},[]);
- useEffect(()=>{if(loaded)window.dangStartup?.ready()},[loaded]);
+ useEffect(()=>{let mounted=true;loadStore().then(s=>{if(!mounted)return;predicted.current=s;persisted.current=s;setStore(s);setLoaded(true);setSaveState('SQLite مستقل آماده است')}).catch(e=>{if(!mounted)return;setFailure('باز کردن دیتابیس مستقل ممکن نشد: '+String(e));setSaveState('خطای دیتابیس');window.dongStartup?.fail(e)});return()=>{mounted=false}},[]);
+ useEffect(()=>{if(loaded)window.dongStartup?.ready()},[loaded]);
  useEffect(()=>{window.scrollTo(0,0)},[page]);
   useEffect(()=>{if(!toast.includes('با موفقیت'))return;const timer=window.setTimeout(()=>setToast(current=>current===toast?'':current),6000);return()=>window.clearTimeout(timer)},[toast]);
  function commit(next:Store,successMessage=''){if(!loaded||failed.current)return;predicted.current=next;setStore(next);setSaveState('در حال ذخیره در SQLite...');queue.current=queue.current.then(async()=>{if(failed.current)return;const result=await saveStore(next);persisted.current=next;if(!failed.current){setSaveState(result.backupWarning||'در SQLite مستقل ذخیره شد');if(successMessage)setToast(result.backupWarning?`${successMessage} ثبت شد؛ ${result.backupWarning}`:`${successMessage} با موفقیت در SQLite ذخیره شد.`)}}).catch(e=>{failed.current=true;predicted.current=persisted.current;setStore(persisted.current);setFailure('خطای ذخیره در SQLite. برای جلوگیری از ثبت نامطمئن، فرم‌ها متوقف شدند: '+String(e));setSaveState('خطای ذخیره‌سازی');setToast('ثبت عملیات ناموفق بود؛ اطلاعات به آخرین وضعیت ذخیره‌شده برگشت.')});}
@@ -278,7 +278,7 @@ function App(){
 class StartupBoundary extends React.Component<{children:React.ReactNode},{failed:boolean}> {
  state={failed:false};
  static getDerivedStateFromError(){return {failed:true}}
- componentDidCatch(error:Error){window.dangStartup?.fail(error)}
+ componentDidCatch(error:Error){window.dongStartup?.fail(error)}
  render(){return this.state.failed?null:this.props.children}
 }
 createRoot(document.getElementById('root')!).render(<StartupBoundary><App/></StartupBoundary>);
