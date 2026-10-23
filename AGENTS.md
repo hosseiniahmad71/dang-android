@@ -8,3 +8,5 @@
 - No application may silently uninstall old apps, clear prior finance data, or delete historical Git evidence.
 
 - **Dong 1.0.1 (versionCode=17)** adds configurable start month for Dong dues. Future APKs must continue using the original Dong 1.0.0 owner signer fingerprint, package `ir.dong.household`, and preserve SQLite. Never use a new random signer for this update. Calendar/transaction floor comes from the persisted startPeriod (earliest allowed Mehr 1405); changing start cannot hide earlier records or installments.
+
+- **Dong 1.0.2, Android versionCode 18** adds a separate Dong Travel workspace (friends/family trips). Expenses, participant splits, cash settlements and snapshots are in separate `travel_state`/`travel_backups` SQLite tables; NEVER merge travel amounts into the household Store or monthly dues. Entry/exit via dashboard. Signed future updates MUST preserve package `ir.dong.household`, SHA-256 signer `8f5ee72bc0e7586b8b6188e6817f4c616bad2df7546da7595291e7ea36911d93` and all SQLite records. Portable `.dongtrip` backups are unencrypted and must be kept privately.
