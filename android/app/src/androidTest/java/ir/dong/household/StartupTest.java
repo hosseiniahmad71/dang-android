@@ -1,4 +1,4 @@
-package ir.dang.household;
+package ir.dong.household;
 
 import android.view.View;
 import android.view.ViewGroup;
@@ -43,16 +43,16 @@ public class StartupTest {
  private void input(String label,String value) throws Exception {
   js("var c=Array.from(document.querySelectorAll('.control')).find(x=>x.querySelector('label')?.textContent.includes("+JSONObject.quote(label)+"));var n=c.querySelector('input');Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(n,"+JSONObject.quote(value)+");n.dispatchEvent(new Event('input',{bubbles:true}));return true");Thread.sleep(250);
  }
- private int eventCount() throws Exception {return Integer.parseInt(js("return JSON.parse(DangNative.invoke(JSON.stringify({op:'get'}))).value.store.events.length"));}
+ private int eventCount() throws Exception {return Integer.parseInt(js("return JSON.parse(DongNative.invoke(JSON.stringify({op:'get'}))).value.store.events.length"));}
  private void writeEvidence(String name,byte[] bytes) throws Exception {
   if(!name.matches("[a-zA-Z0-9._-]+"))throw new IllegalArgumentException("Invalid evidence name");
-  try(android.os.ParcelFileDescriptor mkdir=InstrumentationRegistry.getInstrumentation().getUiAutomation().executeShellCommand("mkdir -p /sdcard/Download/dang73")){
+  try(android.os.ParcelFileDescriptor mkdir=InstrumentationRegistry.getInstrumentation().getUiAutomation().executeShellCommand("mkdir -p /sdcard/Download/dong-v1")){
    new android.os.ParcelFileDescriptor.AutoCloseInputStream(mkdir).readAllBytes();
   }
-  android.os.ParcelFileDescriptor[] pipes=InstrumentationRegistry.getInstrumentation().getUiAutomation().executeShellCommandRw("dd of=/sdcard/Download/dang73/"+name);
+  android.os.ParcelFileDescriptor[] pipes=InstrumentationRegistry.getInstrumentation().getUiAutomation().executeShellCommandRw("dd of=/sdcard/Download/dong-v1/"+name);
   try(android.os.ParcelFileDescriptor.AutoCloseOutputStream out=new android.os.ParcelFileDescriptor.AutoCloseOutputStream(pipes[1])){out.write(bytes);}
   try(android.os.ParcelFileDescriptor.AutoCloseInputStream in=new android.os.ParcelFileDescriptor.AutoCloseInputStream(pipes[0])){in.readAllBytes();}
-  try(android.os.ParcelFileDescriptor check=InstrumentationRegistry.getInstrumentation().getUiAutomation().executeShellCommand("stat -c %s /sdcard/Download/dang73/"+name)){
+  try(android.os.ParcelFileDescriptor check=InstrumentationRegistry.getInstrumentation().getUiAutomation().executeShellCommand("stat -c %s /sdcard/Download/dong-v1/"+name)){
    String size=new String(new android.os.ParcelFileDescriptor.AutoCloseInputStream(check).readAllBytes(),java.nio.charset.StandardCharsets.UTF_8).trim();
    assertEquals("Evidence bytes must survive test APK uninstall",bytes.length,Long.parseLong(size));
   }
@@ -103,10 +103,10 @@ public class StartupTest {
   assertEquals("true",js("return document.fonts.check('500 14px Vazirmatn') && Array.from(document.fonts).some(f=>f.family==='Vazirmatn'&&f.status==='loaded')"));
   assertEquals("true",js("var i=document.querySelector('.topbar-logo');return i.complete&&i.naturalWidth>0&&getComputedStyle(document.documentElement).getPropertyValue('--navy').trim()==='#062c5b'"));
   assertEquals(0,eventCount());
-  assertEquals("true",js("return JSON.parse(DangNative.invoke(JSON.stringify({op:'get'}))).value.store.startPeriod==='1405/07'"));
+  assertEquals("true",js("return JSON.parse(DongNative.invoke(JSON.stringify({op:'get'}))).value.store.startPeriod==='1405/07'"));
   // Synthetic-only fixture: zero Ahmad's obligations before the current month.
   // Arrears rejection remains covered by finance-v71; no user installation is touched.
-  js("var r=JSON.parse(DangNative.invoke(JSON.stringify({op:'get'}))).value,s=r.store;var parts=new Intl.DateTimeFormat('en-US-u-ca-persian',{year:'numeric',month:'numeric',timeZone:'Asia/Tehran'}).formatToParts(new Date());var y=Number(parts.find(x=>x.type==='year').value),m=Number(parts.find(x=>x.type==='month').value);for(var k=1405*12+6;k<y*12+m-1;k++){var p=Math.floor(k/12)+'/'+String(k%12+1).padStart(2,'0');s.contributionOverrides[p+'|ahmad']=0}var out=JSON.parse(DangNative.invoke(JSON.stringify({op:'commit',store:s,expectedRevision:r.revision})));if(!out.ok)throw Error(out.error);return true");
+  js("var r=JSON.parse(DongNative.invoke(JSON.stringify({op:'get'}))).value,s=r.store;var parts=new Intl.DateTimeFormat('en-US-u-ca-persian',{year:'numeric',month:'numeric',timeZone:'Asia/Tehran'}).formatToParts(new Date());var y=Number(parts.find(x=>x.type==='year').value),m=Number(parts.find(x=>x.type==='month').value);for(var k=1405*12+6;k<y*12+m-1;k++){var p=Math.floor(k/12)+'/'+String(k%12+1).padStart(2,'0');s.contributionOverrides[p+'|ahmad']=0}var out=JSON.parse(DongNative.invoke(JSON.stringify({op:'commit',store:s,expectedRevision:r.revision})));if(!out.ok)throw Error(out.error);return true");
   scenario.getScenario().recreate();
   until("document.querySelector('.app-shell') && document.getElementById('startup-panel').hidden");
   screenshot("01-dashboard");
@@ -134,13 +134,13 @@ public class StartupTest {
   tap(".operation-tabs button b","خرید اقساطی");input("عنوان کالا","خرید آزمایشی");input("مبلغ کل قرارداد","1000000");
   until("document.querySelectorAll('.schedule-row').length>0 || document.querySelector('form').innerText.includes('۲۵۰')");
   js("document.querySelector('form button[type=submit]').click();return true");
-  until("JSON.parse(DangNative.invoke(JSON.stringify({op:'get'}))).value.store.plans.length===1");
+  until("JSON.parse(DongNative.invoke(JSON.stringify({op:'get'}))).value.store.plans.length===1");
   tap(".operation-tabs button b","پرداخت قسط");
   js("document.querySelector('form .select-trigger').click();return true");
   until("document.querySelector('[role=option]')");
   js("document.querySelector('[role=option]').click();return true");Thread.sleep(250);
   js("document.querySelector('form button[type=submit]').click();return true");
-  until("JSON.parse(DangNative.invoke(JSON.stringify({op:'get'}))).value.store.events.length===3");
+  until("JSON.parse(DongNative.invoke(JSON.stringify({op:'get'}))).value.store.events.length===3");
   tap(".mobile-nav button","اقساط");screenshot("02-installments");
   tap(".mobile-nav button","تاریخچه");assertEquals("3",js("return document.querySelectorAll('.record').length"));
   scenario.getScenario().onActivity(a->find(a.getWindow().getDecorView()).evaluateJavascript("document.querySelector('.record-kind-purchase button').click()",null));
@@ -170,11 +170,11 @@ public class StartupTest {
   assertEquals("true",js("return window.migrationResult.nativeStress.every(x=>x.events===500&&x.totalCash===1225000)"));
   writeEvidence("migration-summary.json",js("return window.migrationResult").getBytes(java.nio.charset.StandardCharsets.UTF_8));
   // The mirrored SQLite ledger retains the reversal as a fourth row.
-  try(DangDatabase db=new DangDatabase(InstrumentationRegistry.getInstrumentation().getTargetContext());android.database.Cursor cursor=db.getReadableDatabase().rawQuery("SELECT count(*) FROM ledger_events",null)){
+  try(DongDatabase db=new DongDatabase(InstrumentationRegistry.getInstrumentation().getTargetContext());android.database.Cursor cursor=db.getReadableDatabase().rawQuery("SELECT count(*) FROM ledger_events",null)){
    assertTrue(cursor.moveToFirst());assertEquals(4,cursor.getInt(0));
   }
   // Verify the module-independent guard can report a fatal runtime error and retry safely.
-  js("window.dangStartup.fail(new Error('instrumented startup failure'));return true");
+  js("window.dongStartup.fail(new Error('instrumented startup failure'));return true");
   until("!document.getElementById('startup-panel').hidden && !document.getElementById('startup-actions').hidden");screenshot("05-error-recovery");
   js("window.retryMarker=true;document.getElementById('startup-retry').click();return true");
   until("!window.retryMarker && document.querySelector('.app-shell') && document.getElementById('startup-panel').hidden");assertEquals(4,eventCount());

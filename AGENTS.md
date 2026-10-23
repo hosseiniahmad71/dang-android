@@ -1,13 +1,8 @@
-# Dong / دُنگ — قرارداد غیرقابل نقض انتشار V1
+# Dong / دُنگ — official fresh baseline
 
-- English product brand is **Dong**, not Dang. Persian app name is **دُنگ**.
-- The *technical compatibility identifiers* (`ir.dang.household`, legacy `.dangbak`, `DangDatabase`, `DANG_KEYSTORE_*`) must remain stable even though branding is Dong. Changing them breaks Android updates, database access or legacy restore.
-- **V1.0.0** has Android `versionCode=16`. Previous owner-signed production: **7.3.1/code14**, certificate SHA-256 `2b468a624312d5db6028984714f8c9663f6873c87c9a950c5fe0fc6787416108`. Code 15 was an unreleased engineering candidate. All future releases must keep `ir.dang.household`, exact existing signer, and *increase* `versionCode`; marketing version labels may be reset only once for V1.
-- Do NOT distribute any debug or CI ephemeral-key APK as a stable installer. `assembleRelease` using the owner's existing private keystore and a matching fingerprint is mandatory. Never create a new production keystore on CI or reveal passwords/keys in logs, GitHub, or chat. If the key is unavailable, block release.
-- On the exact production-signed APK, verify: package identity, versionCode increase, certificate SHA256, ZIP/asset integrity, working WebView/SQLite, and `adb install -r` over the previous signed release. Assert unchanged financial state, audit rows, private backup digests and firstInstallTime before/after/reopen; publish only after evidence passes.
-- The production signing key must be backed up securely by the owner independent of GitHub. Safe environment secrets are `DANG_KEYSTORE_BASE64`, `DANG_KEYSTORE_PASSWORD`, `DANG_KEY_ALIAS`, `DANG_KEY_PASSWORD` (historical variable names; not app branding).
-- Portable backups: newly exported `.dangbak` files contain schema-versioned **plaintext** full store with SHA-256 integrity. No password for creating or restoring this new format; warn users about financial-data exposure. Keep legacy encrypted .dangbak import path and require existing password only for encrypted backups.
-- Before restoring, validate schema, digest and financial invariants, show explicit preview/confirmation, take before-restore snapshot, commit atomically, read back and compare digest. Never uninstall, clear data or delete an old app to perform an upgrade.
-- `preview71` and `preview72` installations are incompatible with production identity and signer. Retain user's data and require verified backup/import migration; never pretend same-package upgrade can replace those installations.
-- Cleanup of documentation/artifacts must never delete user backup files, production APK baselines, signing evidence or required migration fixtures. Historical evidence can remain retrievable in Git history even when removed from working tree.
-- Permanent operating standard: `docs/ANDROID_RELEASE_BACKUP_POLICY_FA.md`. Every release requires evidence of exact code SHA, APK SHA, signer fingerprint, identity, CI run, successful migration/upgrade and known limitations. Unexecuted tests are never marked passed.
+- **English name must be Dong**. Official new installation: `ir.dong.household`, `versionName=1.0.0`, `versionCode=1`.
+- This is a **fresh install**, not an update to any `ir.dang.*` package. Old installations and their financial data are not automatically modified, migrated or deleted.
+- All future Dong releases must retain `ir.dong.household`, use the **same persistent signing key as the first approved Dong production release**, and increase Android versionCode.
+- Never publish a throwaway CI-signer artifact as the permanent Dong baseline. A new production key is permitted exactly once; the owner must keep a secure offline copy. Required GitHub secrets: `DONG_KEYSTORE_BASE64`, `DONG_KEYSTORE_PASSWORD`, `DONG_KEY_ALIAS`, `DONG_KEY_PASSWORD`.
+- Financial data lives only in app-private SQLite. Portable backups are password-free, clearly disclose plaintext privacy risk, and must be validated before restoration.
+- No application may silently uninstall old apps, clear prior finance data, or delete historical Git evidence.

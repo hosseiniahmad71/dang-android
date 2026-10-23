@@ -1,4 +1,4 @@
-package ir.dang.household;
+package ir.dong.household;
 
 import android.content.ContentValues;
 import android.content.Context;
@@ -17,11 +17,11 @@ import java.time.Instant;
 import java.util.UUID;
 
 /** Browser-independent, app-private SQLite store; writes are revision-guarded and transactional. */
-public final class DangDatabase extends SQLiteOpenHelper {
+public final class DongDatabase extends SQLiteOpenHelper {
     private final File snapshotDir;
 
-    public DangDatabase(Context ctx) {
-        super(ctx, "dang.sqlite", null, 1);
+    public DongDatabase(Context ctx) {
+        super(ctx, "dong.sqlite", null, 1);
         snapshotDir = new File(ctx.getFilesDir(), "backups");
         if (!snapshotDir.exists() && !snapshotDir.mkdirs()) throw new IllegalStateException("Unable to create backup folder");
     }

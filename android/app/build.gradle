@@ -1,10 +1,10 @@
 plugins { id 'com.android.application' }
 android {
-    namespace 'ir.dang.household'
+    namespace 'ir.dong.household'
     compileSdk 35
-    testBuildType providers.gradleProperty('dangTestBuildType').getOrElse('debug')
+    testBuildType providers.gradleProperty('dongTestBuildType').getOrElse('debug')
     defaultConfig {
-        applicationId 'ir.dang.household'
+        applicationId 'ir.dong.household'
         minSdk 26
         targetSdk 35
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
@@ -13,11 +13,12 @@ android {
     }
     signingConfigs {
         stable {
-            if (System.getenv('DANG_KEYSTORE_PATH')) {
-                storeFile file(System.getenv('DANG_KEYSTORE_PATH'))
-                storePassword System.getenv('DANG_KEYSTORE_PASSWORD')
-                keyAlias System.getenv('DANG_KEY_ALIAS')
-                keyPassword System.getenv('DANG_KEY_PASSWORD')
+            if (System.getenv('DONG_KEYSTORE_PATH')) {
+                storeFile file(System.getenv('DONG_KEYSTORE_PATH'))
+                storeType 'pkcs12'
+                storePassword System.getenv('DONG_KEYSTORE_PASSWORD')
+                keyAlias System.getenv('DONG_KEY_ALIAS')
+                keyPassword System.getenv('DONG_KEY_PASSWORD')
             }
         }
     }

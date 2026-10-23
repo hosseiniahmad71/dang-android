@@ -1,4 +1,4 @@
-package ir.dang.household;
+package ir.dong.household;
 
 import android.app.Activity;
 import android.app.AlertDialog;
@@ -34,10 +34,10 @@ import java.util.Locale;
 
 /** Offline Android shell: bundles React assets and speaks to app-private native SQLite. */
 public final class MainActivity extends Activity {
-    private static final String ORIGIN="https://dang.local";
+    private static final String ORIGIN="https://dong.local";
     private static final int OPEN_JSON=311, SAVE_DOCUMENT=312;
     private WebView web;
-    private DangDatabase database;
+    private DongDatabase database;
     private ValueCallback<Uri[]> fileCallback;
     private String pendingId,pendingContent;
 
@@ -52,7 +52,7 @@ public final class MainActivity extends Activity {
         getWindow().getDecorView().setSystemUiVisibility(
             View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR | View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR
         );
-        try { database=new DangDatabase(this); } catch (Exception ex) {
+        try { database=new DongDatabase(this); } catch (Exception ex) {
             new AlertDialog.Builder(this).setTitle("خطای پایگاه داده").setMessage("اطلاعات پاک نشده است.\n"+ex.toString()).setPositiveButton("تلاش مجدد",(d,w)->recreate()).setNegativeButton("بستن",(d,w)->finish()).show(); return;
         }
         web=new WebView(this);
@@ -68,7 +68,7 @@ public final class MainActivity extends Activity {
         web.getSettings().setSupportMultipleWindows(false);
         web.getSettings().setCacheMode(WebSettings.LOAD_NO_CACHE);
         WebView.setWebContentsDebuggingEnabled(false);
-        web.addJavascriptInterface(new LocalBridge(),"DangNative");
+        web.addJavascriptInterface(new LocalBridge(),"DongNative");
         web.setWebViewClient(new WebViewClient(){
             @Override public boolean shouldOverrideUrlLoading(WebView view,WebResourceRequest request){return !request.getUrl().toString().startsWith(ORIGIN+"/");}
             @Override public WebResourceResponse shouldInterceptRequest(WebView view,WebResourceRequest request){
@@ -83,7 +83,7 @@ public final class MainActivity extends Activity {
             }
             @Override public void onReceivedError(WebView view,WebResourceRequest request,WebResourceError error){
                 if(request.isForMainFrame()) nativeStartupFailure("بارگذاری رابط ناموفق بود: "+error.getDescription());
-                Log.e("DangWebView","Load failed: "+request.getUrl()+" code="+error.getErrorCode());
+                Log.e("DongWebView","Load failed: "+request.getUrl()+" code="+error.getErrorCode());
             }
             @Override public boolean onRenderProcessGone(WebView view,RenderProcessGoneDetail detail){
                 nativeStartupFailure("پردازش رابط متوقف شد. اطلاعات SQLite پاک نشده است."); return true;
@@ -94,7 +94,7 @@ public final class MainActivity extends Activity {
             @Override public boolean onConsoleMessage(ConsoleMessage message){
                 // Log source/line only: console messages can contain user financial data.
                 Log.println(message.messageLevel()==ConsoleMessage.MessageLevel.ERROR?Log.ERROR:Log.INFO,
-                    "DangWebView",message.messageLevel()+" at "+message.sourceId()+":"+message.lineNumber());
+                    "DongWebView",message.messageLevel()+" at "+message.sourceId()+":"+message.lineNumber());
                 return true;
             }
             @Override public boolean onShowFileChooser(WebView view,ValueCallback<Uri[]> callback,FileChooserParams params){
@@ -193,7 +193,7 @@ public final class MainActivity extends Activity {
     }
     private void documentResult(String id,boolean success,String message){
         if(id==null||web==null)return;
-        String script="window.dangNativeDocumentResult && window.dangNativeDocumentResult("+JSONObject.quote(id)+","+success+","+JSONObject.quote(message==null?"":message)+")";
+        String script="window.dongNativeDocumentResult && window.dongNativeDocumentResult("+JSONObject.quote(id)+","+success+","+JSONObject.quote(message==null?"":message)+")";
         web.post(()->web.evaluateJavascript(script,null));
     }
     @Override public void onBackPressed(){
