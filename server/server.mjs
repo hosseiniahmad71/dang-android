@@ -39,6 +39,11 @@ export async function startServer(options={}){
    if(path==='/api/reverse'&&req.method==='POST'){const x=await body(req);return send(res,200,await withChangeBackup(store.reverseEvent(x.id,x.reason,x.expectedRevision,x.replacement||null)));}
    if(path==='/api/backups/external'&&req.method==='POST'){const x=await body(req);return send(res,201,await store.externalBackup(x.passphrase));}
    if(path==='/api/backups/external/restore'&&req.method==='POST'){const x=await body(req);return send(res,200,await store.restoreEncrypted(x.envelope,x.passphrase,x.expectedRevision));}
+   if(path==='/api/travel'&&req.method==='GET')return send(res,200,store.getTravel());
+   if(path==='/api/travel'&&req.method==='PUT'){const x=await body(req);return send(res,200,store.saveTravel(x.travel,x.expectedRevision))}
+   if(path==='/api/travel/restore'&&req.method==='POST'){const x=await body(req);return send(res,200,store.saveTravel(x.travel,x.expectedRevision,{restore:true}))}
+   if(path==='/api/travel/backups'&&req.method==='GET')return send(res,200,{items:store.listTravelBackups()});
+   if(/^\/api\/travel\/backups\/\d+$/.test(path)&&req.method==='GET')return send(res,200,{travel:store.readTravelBackup(Number(path.split('/').at(-1)))});
    if(path==='/api/store'&&req.method==='GET')return send(res,200,store.get());
    if(path==='/api/store'&&req.method==='PUT'){
     const x=await body(req);if(!Number.isSafeInteger(x.expectedRevision))throw Error('شماره ویرایش نامعتبر است.');
