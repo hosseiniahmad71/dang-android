@@ -43,7 +43,7 @@ public class UpgradeTest {
   }
  }
  @Test public void verifyAfterUpdate()throws Exception{
-  assertEquals(Long.parseLong(InstrumentationRegistry.getArguments().getString("updateVersion","15")),ctx().getPackageManager().getPackageInfo(ctx().getPackageName(),0).getLongVersionCode());
+  assertEquals(Long.parseLong(InstrumentationRegistry.getArguments().getString("updateVersion","16")),ctx().getPackageManager().getPackageInfo(ctx().getPackageName(),0).getLongVersionCode());
   try(DangDatabase db=new DangDatabase(ctx())){
    JSONObject s=db.get();assertNotNull("Existing SQLite state must survive install -r",s);JSONObject store=s.getJSONObject("store");
    assertEquals(2,store.getJSONArray("events").length());assertEquals(1,store.getJSONArray("plans").length());assertEquals("1405/07",store.getJSONArray("closedPeriods").getString(0));assertEquals(12000000,store.getJSONObject("contributionOverrides").getInt("1405/08|ahmad"));
