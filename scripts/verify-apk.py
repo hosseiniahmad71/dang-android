@@ -37,5 +37,5 @@ if a.aapt:
     }
     assert "android.permission.INTERNET" not in manifest, 'Unexpected INTERNET permission'
     if a.expected_package: assert result['identity']['name']==a.expected_package
-    assert result['identity']['versionCode']=='13'
+    assert result['identity']['versionCode']=='14'
 print(json.dumps(result,ensure_ascii=False,indent=2))

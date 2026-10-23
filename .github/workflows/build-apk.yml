@@ -13,6 +13,7 @@ on:
         default: 'ir.dang.household'
   push:
     branches: [main, work/7.3-startup-integrity]
+    paths-ignore: ["docs/**", "tests/upgrade-apks/**", ".github/workflows/verify-signed-upgrade.yml"]
 jobs:
   android:
     runs-on: ubuntu-latest
@@ -70,8 +71,10 @@ jobs:
           python3 scripts/verify-apk.py android/app/build/outputs/apk/release/app-release.apk --aapt "$ANDROID_HOME/build-tools/35.0.0/aapt" --expected-package ir.dang.household | tee runtime-evidence/apk-metadata.json
       - uses: actions/upload-artifact@v4
         with:
-          name: Dang-v7.3.0-release-payload-CI-validation-only
-          path: android/app/build/outputs/apk/release/app-release.apk
+          name: Dang-v7.3.1-release-payload-CI-validation-only
+          path: |
+            android/app/build/outputs/apk/release/app-release.apk
+            android/app/build/outputs/apk/androidTest/release/app-release-androidTest.apk
           if-no-files-found: error
 
       - name: Enable KVM for Android runtime tests

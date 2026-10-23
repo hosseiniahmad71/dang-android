@@ -10,3 +10,5 @@ android/app/src/main/assets/web/
 *.p12
 work73-signing/
 android/app/src/androidTest/assets/migration-test.js
+
+android/app/src/androidTest/assets/upgrade-store.json

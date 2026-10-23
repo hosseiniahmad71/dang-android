@@ -86,6 +86,16 @@ public class StartupTest {
   for(int i=0;i<node.getChildCount();i++)if(accept(node.getChild(i)))return true;
   return false;
  }
+ private void touchSearchInput()throws Exception{
+  JSONObject p=new JSONObject(js("var r=document.querySelector('.search-dialog input').getBoundingClientRect();return {x:r.x+r.width/2,y:r.y+r.height/2}"));
+  AtomicReference<float[]> coords=new AtomicReference<>();
+  scenario.getScenario().onActivity(a->{WebView w=find(a.getWindow().getDecorView());int[] loc=new int[2];w.getLocationOnScreen(loc);coords.set(new float[]{loc[0]+(float)p.optDouble("x")*w.getScale(),loc[1]+(float)p.optDouble("y")*w.getScale()});});
+  long now=android.os.SystemClock.uptimeMillis();float[] xy=coords.get();
+  for(int action:new int[]{android.view.MotionEvent.ACTION_DOWN,android.view.MotionEvent.ACTION_UP}){android.view.MotionEvent event=android.view.MotionEvent.obtain(now,now+30,action,xy[0],xy[1],0);InstrumentationRegistry.getInstrumentation().getUiAutomation().injectInputEvent(event,true);event.recycle();}
+  boolean visible=false;
+  for(int i=0;i<100&&!visible;i++){AtomicReference<Boolean> v=new AtomicReference<>(false);scenario.getScenario().onActivity(a->v.set(a.getWindow().getDecorView().getRootWindowInsets().isVisible(android.view.WindowInsets.Type.ime())));visible=v.get();if(!visible)Thread.sleep(100);}
+  assertTrue("Keyboard must really open during selector regression test",visible);
+ }
  @Test public void offlineDashboardFinanceAndReopen() throws Exception {
   until("document.querySelector('.app-shell') && document.getElementById('startup-panel').hidden");
   assertEquals("true",js("return window.innerWidth<=600 && document.documentElement.scrollWidth<=window.innerWidth+1 && getComputedStyle(document.querySelector('.sidebar')).display==='none'"));
@@ -100,6 +110,19 @@ public class StartupTest {
   scenario.getScenario().recreate();
   until("document.querySelector('.app-shell') && document.getElementById('startup-panel').hidden");
   screenshot("01-dashboard");
+  js("window.selectorWidth=innerWidth;document.querySelector('.period-top .select-trigger').click();return true");
+  until("document.querySelector('.search-dialog[open]')");
+  assertEquals("false",js("return document.activeElement.tagName==='INPUT'"));
+  assertEquals("true",js("var r=document.querySelector('.search-dialog').getBoundingClientRect();return innerWidth===window.selectorWidth&&document.documentElement.scrollWidth<=innerWidth+1&&r.left>=0&&r.right<=innerWidth"));
+  screenshot("06-period-selector");touchSearchInput();Thread.sleep(500);
+  assertEquals("true",js("var r=document.querySelector('.search-dialog').getBoundingClientRect(),v=visualViewport;return innerWidth===window.selectorWidth&&document.documentElement.scrollWidth<=innerWidth+1&&Math.abs(v.scale-1)<.05&&r.top>=v.offsetTop-1&&r.bottom<=v.offsetTop+v.height+2"));
+  screenshot("07-period-keyboard");
+  try(android.os.ParcelFileDescriptor close=InstrumentationRegistry.getInstrumentation().getUiAutomation().executeShellCommand("input keyevent 4")){new android.os.ParcelFileDescriptor.AutoCloseInputStream(close).readAllBytes();}
+  js("document.querySelector('.search-dialog-heading button').click();return true");until("!document.querySelector('.search-dialog[open]')");
+  assertEquals("true",js("var b=document.querySelector('.mobile-nav button.active');return getComputedStyle(b,'::before').display==='none'"));
+  tap(".mobile-nav button","ثبت عملیات");tap(".operation-tabs button b","تسویه و اصلاح");
+  js("document.querySelector('.settlement-help-button').click();return true");
+  assertEquals("true",js("var b=document.querySelector('.settlement-help-button'),r=b.getBoundingClientRect();return Math.abs(r.width-r.height)<1&&getComputedStyle(b.querySelector('svg')).opacity==='1'&&!!document.querySelector('.settlement-explanation')"));screenshot("08-settlement-help");
   tap(".mobile-nav button","ثبت عملیات");tap(".operation-tabs button b","واریز دنگ");
   until("document.querySelector('.deposit-member-list')");
   js("document.querySelector('form button[type=submit]').click();return true");

@@ -137,7 +137,7 @@ public final class MainActivity extends Activity {
         web.loadUrl(ORIGIN+"/index.html");
     }
     private void nativeStartupFailure(String message){
-        runOnUiThread(()->new AlertDialog.Builder(this).setTitle("راه‌اندازی دنگ ناموفق بود")
+        runOnUiThread(()->new AlertDialog.Builder(this).setTitle("راه‌اندازی دُنگ ناموفق بود")
             .setMessage(message).setPositiveButton("تلاش مجدد",(d,w)->recreate())
             .setNegativeButton("بستن",(d,w)->finish()).show());
     }
@@ -197,7 +197,11 @@ public final class MainActivity extends Activity {
         web.post(()->web.evaluateJavascript(script,null));
     }
     @Override public void onBackPressed(){
-        if(web.canGoBack())web.goBack();else new AlertDialog.Builder(this).setMessage("از برنامه دنگ خارج می‌شوید؟").setPositiveButton("خروج",(d,w)->finish()).setNegativeButton("ادامه",null).show();
+        if(web==null){super.onBackPressed();return;}
+        web.evaluateJavascript("(function(){var d=document.querySelector('dialog[open]');if(!d)return false;d.close();return true})()",handled->{
+            if("true".equals(handled))return;
+            if(web.canGoBack())web.goBack();else new AlertDialog.Builder(this).setMessage("از برنامه دُنگ خارج می‌شوید؟").setPositiveButton("خروج",(d,w)->finish()).setNegativeButton("ادامه",null).show();
+        });
     }
     @Override protected void onDestroy(){if(web!=null)web.destroy();if(database!=null)database.close();super.onDestroy();}
 }
