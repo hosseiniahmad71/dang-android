@@ -31,7 +31,7 @@ export function saveAndroidDocument(filename:string,content:string):Promise<stri
 import {encodeAndroidBackup,decodeAndroidBackup} from './backup-codec.mjs';
 export async function createAndroidEncryptedBackup(store:unknown,passphrase:string){
  const content=JSON.stringify(await encodeAndroidBackup(store,passphrase),null,2);
- const filename=`dang-${new Date().toISOString().replace(/[:.]/g,'-')}.dangbak`;
+ const filename=`dong-${new Date().toISOString().replace(/[:.]/g,'-')}.dangbak`;
  const location=await saveAndroidDocument(filename,content);
  return {filename,location,size:content.length};
 }
@@ -42,7 +42,7 @@ export async function createAndroidPortableBackup(store:unknown){
  const {encodePortableBackup}=await import('./backup-codec.mjs');
  const envelope=await encodePortableBackup(store);
  const content=JSON.stringify(envelope,null,2);
- const filename=`dang-${new Date().toISOString().replace(/[:.]/g,'-')}.dangbak`;
+ const filename=`dong-${new Date().toISOString().replace(/[:.]/g,'-')}.dangbak`;
  const location=await saveAndroidDocument(filename,content);
  return {filename,location,size:content.length};
 }
