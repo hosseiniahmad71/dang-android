@@ -1,6 +1,14 @@
 package ir.dong.household;
 
 import androidx.test.ext.junit.runners.AndroidJUnit4;
+import androidx.test.ext.junit.rules.ActivityScenarioRule;
+import android.webkit.WebView;
+import android.view.View;
+import android.view.ViewGroup;
+import org.junit.Rule;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import androidx.test.platform.app.InstrumentationRegistry;
 import org.json.JSONObject;
 import org.json.JSONArray;
@@ -11,6 +19,37 @@ import static org.junit.Assert.*;
 /** Actual Android SQLite separation/rollback/snapshot proof: travel may not alter household ledger. */
 @RunWith(AndroidJUnit4.class)
 public class TravelTest {
+ @Rule public ActivityScenarioRule<MainActivity> scenario = new ActivityScenarioRule<>(MainActivity.class);
+ private WebView find(View v){
+  if(v instanceof WebView)return (WebView)v;
+  if(v instanceof ViewGroup)for(int i=0;i<((ViewGroup)v).getChildCount();i++){
+   WebView w=find(((ViewGroup)v).getChildAt(i));if(w!=null)return w;
+  }
+  return null;
+ }
+ private boolean evaluate(String expression) throws Exception {
+  CountDownLatch latch=new CountDownLatch(1);AtomicReference<String> response=new AtomicReference<>("");
+  scenario.getScenario().onActivity(a->{
+   WebView w=find(a.getWindow().getDecorView());assertNotNull(w);
+   w.evaluateJavascript("(function(){try{return Boolean("+expression+")}catch(e){return false}})()",x->{response.set(x);latch.countDown();});
+  });
+  assertTrue("Travel WebView callback timed out",latch.await(10,TimeUnit.SECONDS));
+  return "true".equals(response.get());
+ }
+ @Test public void travelDashboardSwitchDoesNotWhiteScreen() throws Exception {
+  boolean ready=false;
+  for(int i=0;i<160;i++){if(evaluate("document.querySelector('.travel-entry-banner button')")){ready=true;break;}Thread.sleep(150);}
+  assertTrue("Home dashboard never loaded",ready);
+  assertTrue("Travel entry click failed",evaluate("(document.querySelector('.travel-entry-banner button').click(),true)"));
+  boolean opened=false;
+  for(int i=0;i<80;i++){if(evaluate("!!document.querySelector('.travel-page .travel-tabs')")){opened=true;break;}Thread.sleep(150);}
+  assertTrue("Separate travel UI did not render",opened);
+  assertTrue("Return home button missing",evaluate("!!document.querySelector('.travel-heading button')"));
+  assertTrue("Return click failed",evaluate("(document.querySelector('.travel-heading button').click(),true)"));
+  boolean home=false;
+  for(int i=0;i<80;i++){if(evaluate("!!document.querySelector('.travel-entry-banner')")){home=true;break;}Thread.sleep(150);}
+  assertTrue("House dashboard not restored",home);
+ }
  @Test public void separateTravelRowsPersistWithoutMutatingHousehold() throws Exception {
   DongDatabase db=new DongDatabase(InstrumentationRegistry.getInstrumentation().getTargetContext());
   try {
