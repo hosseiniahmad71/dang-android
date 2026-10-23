@@ -3,6 +3,9 @@ on:
   workflow_dispatch:
 permissions:
   contents: read
+concurrency:
+  group: dang-owner-signed-release
+  cancel-in-progress: false
 jobs:
   release:
     if: github.ref == 'refs/heads/main'
