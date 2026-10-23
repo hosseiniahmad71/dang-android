@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {encodeAndroidBackup,decodeAndroidBackup,storeDigest} from '../src/backup-codec.mjs';
+import {encodeAndroidBackup,decodeAndroidBackup,storeDigest,encodePortableBackup,decodePortableBackup} from '../src/backup-codec.mjs';
 const secret='synthetic-test-password-only';
 test('Android 7.1 encrypted envelope compatibility, tamper/password rejection, full-state digest',async()=>{
  const store={version:3,events:[{id:'retained',amount:123456}],plans:[{id:'plan'}],closedPeriods:['1405/07']};
@@ -19,4 +19,18 @@ test('Android 7.1 encrypted envelope compatibility, tamper/password rejection, f
  const base64=bytes=>btoa(String.fromCharCode(...new Uint8Array(bytes)));
  const legacy={format:'dang-android-encrypted',version:1,kdf:'PBKDF2-SHA256',iterations:310000,cipher:'AES-256-GCM',salt:base64(salt),iv:base64(iv),payload:base64(cipher)};
  assert.deepEqual((await decodeAndroidBackup(legacy,secret)).store,store);
+});
+
+test('password-free portable backup roundtrip and SHA256 corruption refusal',async()=>{
+ const store={version:3,events:[{id:'evt-1',amount:23456}],plans:[{id:'inst-1'}],closedPeriods:['1405/07'],members:[{id:'member-1'}],preferences:{locale:'fa'}};
+ const fresh=await encodePortableBackup(store);
+ assert.equal(fresh.format,'dang-portable-backup');
+ assert.equal(fresh.version,1);
+ assert.equal(fresh.schema,3);
+ assert.equal('password' in fresh,false);
+ assert.deepEqual((await decodePortableBackup(JSON.parse(JSON.stringify(fresh)))).store,store);
+ await assert.rejects(()=>decodePortableBackup({...fresh,store:{...store,events:[{id:'tampered',amount:23456}]}}),/اثر انگشت/);
+ await assert.rejects(()=>decodePortableBackup({...fresh,storeSha256:'00'.repeat(32)}),/اثر انگشت/);
+ await assert.rejects(()=>decodePortableBackup({...fresh,version:99}),/ساختار/);
+ await assert.rejects(()=>decodePortableBackup({...fresh,store:null}),/ساختار/);
 });
