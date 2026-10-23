@@ -218,6 +218,7 @@ function HistoryView({store,onReverse}:{store:Store,onReverse:(id:string,reason:
   if(window.confirm(message))void onReverse(event.id,'ابطال با تأیید مدیر');
  };
  const correctAmount=(event:Event)=>{
+  if(event.kind==='reversal')return; // Audit reversal itself has a fixed zero amount and cannot be edited.
   const value=window.prompt('مبلغ صحیح به تومان (فقط عدد):',String(event.amount));
   if(value===null)return;
   const amount=parseToman(value);
