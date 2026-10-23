@@ -1,4 +1,4 @@
-name: Validate Dong Android (NOT INSTALLABLE)
+name: Validate Dong Android (FRESH INSTALL TEST BUILD)
 on:
   workflow_dispatch:
   pull_request:
@@ -53,20 +53,20 @@ jobs:
         run: node --test tests/*.test.mjs tests/ui-contract.test.cjs
       - name: Prepare disposable CI-only validation signer
         run: |
-          keytool -genkeypair -noprompt -keystore "$RUNNER_TEMP/dang-validation.jks" -storepass ci-validation-only -keypass ci-validation-only -alias validation -keyalg RSA -keysize 2048 -validity 2 -dname 'CN=CI validation only'
-          echo "DANG_KEYSTORE_PATH=$RUNNER_TEMP/dang-validation.jks" >> "$GITHUB_ENV"
-          echo 'DANG_KEYSTORE_PASSWORD=ci-validation-only' >> "$GITHUB_ENV"
-          echo 'DANG_KEY_ALIAS=validation' >> "$GITHUB_ENV"
-          echo 'DANG_KEY_PASSWORD=ci-validation-only' >> "$GITHUB_ENV"
+          keytool -genkeypair -noprompt -keystore "$RUNNER_TEMP/dong-validation.jks" -storepass ci-validation-only -keypass ci-validation-only -alias validation -keyalg RSA -keysize 2048 -validity 2 -dname 'CN=CI validation only'
+          echo "DONG_KEYSTORE_PATH=$RUNNER_TEMP/dong-validation.jks" >> "$GITHUB_ENV"
+          echo 'DONG_KEYSTORE_PASSWORD=ci-validation-only' >> "$GITHUB_ENV"
+          echo 'DONG_KEY_ALIAS=validation' >> "$GITHUB_ENV"
+          echo 'DONG_KEY_PASSWORD=ci-validation-only' >> "$GITHUB_ENV"
       - name: Build release payload for runtime validation
-        run: cd android && gradle --no-daemon assembleRelease assembleReleaseAndroidTest -PdangTestBuildType=release
+        run: cd android && gradle --no-daemon assembleRelease assembleReleaseAndroidTest -PdongTestBuildType=release
       - name: Verify actual APK package, assets and ZIP integrity
         run: |
           mkdir -p runtime-evidence
-          python3 scripts/verify-apk.py android/app/build/outputs/apk/release/app-release.apk --aapt "$ANDROID_HOME/build-tools/35.0.0/aapt" --expected-package ir.dang.household | tee runtime-evidence/apk-metadata.json
+          python3 scripts/verify-apk.py android/app/build/outputs/apk/release/app-release.apk --aapt "$ANDROID_HOME/build-tools/35.0.0/aapt" --expected-package ir.dong.household | tee runtime-evidence/apk-metadata.json
       - uses: actions/upload-artifact@v4
         with:
-          name: Dong-CI-VALIDATION-ONLY-DO-NOT-INSTALL
+          name: Dong-CI-VALIDATION-ONLY-FRESH-INSTALL-ONLY-TEST-SIGNER
           path: |
             android/app/build/outputs/apk/release/app-release.apk
             android/app/build/outputs/apk/androidTest/release/app-release-androidTest.apk
@@ -105,4 +105,4 @@ jobs:
             android/app/build/outputs/androidTest-results/
       - name: Remove disposable CI key
         if: always()
-        run: rm -f "$RUNNER_TEMP/dang-validation.jks"
+        run: rm -f "$RUNNER_TEMP/dong-validation.jks"
