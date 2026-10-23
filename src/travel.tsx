@@ -8,7 +8,7 @@ import {isNativeAndroid,saveAndroidDocument} from './native-bridge';
 import {TRAVEL_CATEGORIES,EMPTY_TRAVEL,validateTravel,validateTravelChange,summarizeTrip} from './travel-ledger.mjs';
 type Participant={id:string,name:string};
 type Expense={id:string,date:string,amount:number,category:string,paidBy:string,forMembers:string[],note:string};
-type Settlement={id:string,date:string,amount:number,from:string,to:string,note:string};
+type Settlement={id:string,date:string,amount:number,from:string,to:string,note:string,expenseCount:number};
 type Trip={id:string,name:string,kind:'friends'|'family',date:string,participants:Participant[],expenses:Expense[],settlements:Settlement[]};
 type Travel={version:1,trips:Trip[]};
 type Tab='overview'|'expense'|'settlement'|'backup';
@@ -58,7 +58,7 @@ export function TravelView({onHome}:{onHome:()=>void}){
  async function addSettlement(){
   if(!trip||!financial)return;const value=parseToman(settledAmount);
   if(!Number.isSafeInteger(value)||value<=0||!from||!to){setError('بدهکار، طلبکار و مبلغ تسویه را مشخص کن.');return}
-  const s:Settlement={id:uuid(),date:settleDate,amount:value,from,to,note:settleNote.trim()};
+  const s:Settlement={id:uuid(),date:settleDate,amount:value,from,to,note:settleNote.trim(),expenseCount:trip.expenses.length};
   const next:Travel={...travel,trips:travel.trips.map(t=>t.id===trip.id?{...t,settlements:[...t.settlements,s]}:t)};
   if(await save(next,'تسویه ثبت شد')){setSettledAmount('');setSettleNote('')}
  }
