@@ -1,0 +1,40 @@
+name: Verify production-signed Dang update preserves data
+on:
+  push:
+    branches: [work/7.3.1-signed-upgrade]
+  workflow_dispatch:
+jobs:
+  signed-upgrade:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Verify production certificate, identity and version codes
+        run: |
+          mkdir -p upgrade-evidence
+          python3 scripts/verify-signed-upgrade.py | tee upgrade-evidence/apk-signatures.json
+      - name: Enable Android emulator acceleration
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Install real 7.3, seed synthetic SQLite, update with install -r, compare full state
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          arch: x86_64
+          target: google_apis
+          disable-animations: true
+          script: bash scripts/run-signed-upgrade.sh
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Dang-7.3-to-7.3.1-production-signed-upgrade-evidence
+          path: upgrade-evidence/
+          if-no-files-found: error
