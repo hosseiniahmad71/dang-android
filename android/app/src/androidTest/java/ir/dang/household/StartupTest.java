@@ -66,6 +66,10 @@ public class StartupTest {
    }});
   });
   assertTrue("WebView visual frame was not presented",painted.await(10,TimeUnit.SECONDS));
+  // SurfaceFlinger on a software-rendered emulator can trail the DOM/visual callback.
+  Thread.sleep(500);
+  if(name.equals("05-error-recovery"))assertEquals("true",js("var p=document.getElementById('startup-panel');return !p.hidden&&getComputedStyle(p).display!=='none'&&!!document.elementFromPoint(40,40)?.closest('#startup-panel')"));
+  writeEvidence(name+".state.json",js("var p=document.getElementById('startup-panel');return {title:document.querySelector('h1')?.textContent,panelHidden:p.hidden,panelDisplay:getComputedStyle(p).display,topElement:document.elementFromPoint(40,40)?.outerHTML,scrollY:window.scrollY}").getBytes(java.nio.charset.StandardCharsets.UTF_8));
   Bitmap image=InstrumentationRegistry.getInstrumentation().getUiAutomation().takeScreenshot();
   assertNotNull("Android screenshot unavailable",image);
   java.io.ByteArrayOutputStream bytes=new java.io.ByteArrayOutputStream();image.compress(Bitmap.CompressFormat.PNG,100,bytes);
