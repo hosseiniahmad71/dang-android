@@ -16,7 +16,7 @@
     document.getElementById('startup-actions').hidden = false;
     document.getElementById('startup-details').textContent = lastReport;
   }
-  window.dangStartup = {
+  window.dongStartup = {
     fail: fail,
     ready: function () { ready = true; clearTimeout(timer); document.getElementById('startup-panel').hidden = true; }
   };
@@ -27,8 +27,8 @@
   window.addEventListener('unhandledrejection', function (event) { fail(event.reason); });
   document.getElementById('startup-retry').onclick = function () { location.reload(); };
   document.getElementById('startup-save').onclick = function () {
-    if (window.DangNative) {
-      window.DangNative.saveFile('startup-diagnostic', 'dong-startup-diagnostic.txt', lastReport);
+    if (window.DongNative) {
+      window.DongNative.saveFile('startup-diagnostic', 'dong-startup-diagnostic.txt', lastReport);
     } else {
       var link = document.createElement('a'), url = URL.createObjectURL(new Blob([lastReport], {type:'text/plain'}));
       link.href = url; link.download = 'dong-startup-diagnostic.txt'; link.click(); setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
