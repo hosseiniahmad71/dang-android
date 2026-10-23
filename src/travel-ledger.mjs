@@ -20,17 +20,24 @@ export function validateTravel(state){
   for(const e of trip.expenses){
    if(!e||!id(e.id)||!date(e.date)||!amount(e.amount)||!TRAVEL_CATEGORIES.includes(e.category)||!members.has(e.paidBy)||!Array.isArray(e.forMembers)||e.forMembers.length<1||!unique(e.forMembers)||!e.forMembers.every(m=>members.has(m))||typeof e.note!=='string'||e.note.length>500)bad('خرج سفر نامعتبر است.');
   }
+  // A settlement is checked against the expense prefix that existed when it was made.
+  // Future expenses may reverse who owes whom without invalidating older paid settlements.
   const balance=Object.fromEntries(participants.map(p=>[p.id,0]));
-  for(const e of trip.expenses){
+  let checkedExpenses=0;
+  const apply=e=>{
    balance[e.paidBy]+=e.amount;
    const share=Math.floor(e.amount/e.forMembers.length),rem=e.amount%e.forMembers.length;
    e.forMembers.forEach((m,i)=>{balance[m]-=share+(i<rem?1:0)});
-  }
-  for(const s of trip.settlements){
-   if(!s||!id(s.id)||!date(s.date)||!amount(s.amount)||!members.has(s.from)||!members.has(s.to)||s.from===s.to||typeof s.note!=='string'||s.note.length>500)bad('تسویه سفر نامعتبر است.');
+  };
+  for(const entry of trip.settlements){
+   const s=entry;
+   if(!s||!id(s.id)||!date(s.date)||!amount(s.amount)||!members.has(s.from)||!members.has(s.to)||s.from===s.to||typeof s.note!=='string'||s.note.length>500
+      ||!Number.isSafeInteger(s.expenseCount)||s.expenseCount<checkedExpenses||s.expenseCount>trip.expenses.length)bad('تسویه سفر نامعتبر است.');
+   while(checkedExpenses<s.expenseCount)apply(trip.expenses[checkedExpenses++]);
    if(balance[s.from]>=0||balance[s.to]<=0||s.amount>Math.min(-balance[s.from],balance[s.to]))bad('تسویه بیشتر از بدهی یا طلب واقعی سفر است.');
    balance[s.from]+=s.amount;balance[s.to]-=s.amount;
   }
+  while(checkedExpenses<trip.expenses.length)apply(trip.expenses[checkedExpenses++]);
   if(sum(Object.values(balance))!==0)bad('محاسبات سهم سفر تراز نیست.');
  }
  return state;
