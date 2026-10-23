@@ -15,9 +15,10 @@ import {monthStart,persianMonth} from '../src/native-ledger.mjs';
  if(await storeDigest(restored)!==digest||await storeDigest(await loadStore())!==digest)throw Error('SQLite restore mismatch');
  const nativeStress=[];
  for(const span of [1,3,6]){
+  const dates:Record<string,string>={};
   const candidate=structuredClone(before);candidate.events=[];candidate.plans=[];candidate.closedPeriods=[];candidate.openingBalance=1000000;
   for(let i=0;i<500;i++){
-   const index=1405*12+6+Math.floor(i*span/500),period=Math.floor(index/12)+'/'+String(index%12+1).padStart(2,'0'),date=monthStart(period);
+   const index=1405*12+6+Math.floor(i*span/500),period=Math.floor(index/12)+'/'+String(index%12+1).padStart(2,'0'),date=(dates[period]??=monthStart(period));
    const common={id:`native-${span}-${i}`,date,description:'synthetic native SQLite audit'};
    candidate.events.push(i%2===0?{...common,kind:'deposit',amount:1000,memberId:'ahmad',accountId:'fund',destinationId:'fund',period}: {...common,kind:'purchase',amount:100,accountId:'fund',paidById:'',category:candidate.categories[0],creditPeriod:period});
   }
