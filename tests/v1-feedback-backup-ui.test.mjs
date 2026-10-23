@@ -47,5 +47,7 @@ test('Dong is the customer-facing English brand, legacy technical identifiers st
  assert.match(database,/a\.download=`dong-/);
  assert.match(strings,/>دُنگ</);
  assert.equal(config.applicationId,'ir.dang.household');
- assert.match(database,/format:'dang-backup'/);\n assert.match(database,/const filename=`dong-/);\n assert.match(readFileSync('src/backup-codec.mjs','utf8'),/format:'dong-portable-backup'/);
+ assert.match(database,/format:'dang-backup'/);
+ assert.match(database,/const filename=`dong-/);
+ assert.match(readFileSync('src/backup-codec.mjs','utf8'),/format:'dong-portable-backup'/);
 });
