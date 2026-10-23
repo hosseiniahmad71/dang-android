@@ -23,7 +23,7 @@ test('operations acknowledge persistence only after successful SQLite commit',()
 });
 
 test('V1 branding and backup instructions cannot regress to 7.3.1',()=>{
- assert.equal(config.versionName,'1.0.0');
+ assert.equal(config.versionName,'1.0.1');
  assert.equal(config.applicationId,'ir.dong.household');
  assert.match(app,/نسخه رسمی ۱\.۰\.۰/);
  assert.doesNotMatch(app,/نسخه ۷\.۳\.۱ · کاملاً آفلاین/);
