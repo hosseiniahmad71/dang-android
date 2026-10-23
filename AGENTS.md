@@ -2,7 +2,8 @@
 
 - User-visible application name: دُنگ. Production package: `ir.dang.household`.
 - Production signing certificate SHA-256: `2b468a624312d5db6028984714f8c9663f6873c87c9a950c5fe0fc6787416108`.
-- The installed production baseline is 7.3.0 / code 13. The 7.3.1 update uses code 14. All future updates must retain this package and signing key and increment versionCode.
+- On 2026-10-23 the owner explicitly selected the delivered 7.3.1 / versionCode 14 APK as the baseline for all future updates. This is an owner-approved baseline, not evidence that installation on the owner's phone has completed. Do not revert the update target to 7.1 or create another app identity. All future updates must retain this package and signing key and use versionCode greater than 14 (and greater than the last released code).
+- Before delivering each future update, install the actual signed new APK over the signed 7.3.1 baseline (or latest released baseline) with adb install -r, verify it remains one application, and compare complete financial state and private backups before, after and after reopening. Do not present debug/preview APKs as ordinary updates.
 - Do not generate a different production key for an ordinary update. Recover the owner's existing private signing backup or use owner-entered signing secrets. Never commit, log or publish private keys/passwords. `DANG-Release-Signing-PRIVATE.zip` is an owner-private backup outside this public repository.
 - CI's temporary validation key and `.preview73` debug builds are for testing only. Never present these artifacts as a production update.
 - The older preview71/preview72 packages and certificates are historically incompatible; never claim they update in place. Preserve them and use verified encrypted migration if needed. This does not justify changing the production identity again.
