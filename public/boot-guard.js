@@ -3,7 +3,7 @@
   'use strict';
   var ready = false, lastReport = '', timer;
   function report(error) {
-    return 'DANG 7.3 startup diagnostic\n' + new Date().toISOString() + '\n' +
+    return 'Dong V1.0.0 startup diagnostic\n' + new Date().toISOString() + '\n' +
       navigator.userAgent + '\n' + String(error && (error.stack || error.message) || error);
   }
   function fail(error) {
@@ -28,10 +28,10 @@
   document.getElementById('startup-retry').onclick = function () { location.reload(); };
   document.getElementById('startup-save').onclick = function () {
     if (window.DangNative) {
-      window.DangNative.saveFile('startup-diagnostic', 'dang-startup-diagnostic.txt', lastReport);
+      window.DangNative.saveFile('startup-diagnostic', 'dong-startup-diagnostic.txt', lastReport);
     } else {
       var link = document.createElement('a'), url = URL.createObjectURL(new Blob([lastReport], {type:'text/plain'}));
-      link.href = url; link.download = 'dang-startup-diagnostic.txt'; link.click(); setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+      link.href = url; link.download = 'dong-startup-diagnostic.txt'; link.click(); setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
     }
   };
   timer = setTimeout(function () { if (!ready) fail('Startup timed out after 20 seconds; UI/SQLite did not report ready.'); }, 20000);
