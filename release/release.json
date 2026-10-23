@@ -3,11 +3,14 @@
   "appNameFa": "دُنگ",
   "versionName": "1.0.0",
   "versionCode": 16,
-  "applicationId": "ir.dang.household",
-  "certificateSha256": "2b468a624312d5db6028984714f8c9663f6873c87c9a950c5fe0fc6787416108",
-  "baseline": {
-    "apk": "tests/upgrade-apks/update-7.3.1.apk",
-    "versionName": "7.3.1",
-    "versionCode": 14
-  }
+  "applicationId": "ir.dong.household",
+  "certificateSha256": "cd7c8d5ba5089ccaba2b235dfd3beb84ed86d7da9d2bf93c2faa7b676a3af360",
+  "signingKeyAlias": "dong-release",
+  "releaseLine": "fresh-baseline",
+  "previousRelease": null,
+  "oldPackagesNotUpgradable": [
+    "ir.dang.household",
+    "ir.dang.household.preview71",
+    "ir.dang.household.preview72"
+  ]
 }
