@@ -86,7 +86,7 @@ export async function exportPortableBackup():Promise<{filename:string,location:s
  // @ts-ignore audited JavaScript module (no TypeScript declaration file)
  const {encodePortableBackup}=await import('./backup-codec.mjs');
  const content=JSON.stringify(await encodePortableBackup(store),null,2);
- const filename=`dong-${new Date().toISOString().replace(/[:.]/g,'-')}.dangbak`;
+ const filename=`dong-${new Date().toISOString().replace(/[:.]/g,'-')}.dongbak`;
  const blob=new Blob([content],{type:'application/json'});
  const url=URL.createObjectURL(blob),anchor=document.createElement('a');
  try{anchor.href=url;anchor.download=filename;document.body.append(anchor);anchor.click();anchor.remove();}
