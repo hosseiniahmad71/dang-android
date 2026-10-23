@@ -6,6 +6,9 @@ on:
   push:
     branches: [main, work/7.3.2-stable-release-backup-governance]
     paths-ignore: ["docs/**", "tests/upgrade-apks/**", ".github/workflows/verify-signed-upgrade.yml"]
+concurrency:
+  group: dang-validation-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   android:
     runs-on: ubuntu-latest
