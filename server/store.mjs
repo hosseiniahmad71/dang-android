@@ -4,6 +4,7 @@ import { join, resolve, basename } from 'node:path';
 import { homedir } from 'node:os';
 import { randomUUID, createHash, randomBytes, scryptSync, createCipheriv, createDecipheriv } from 'node:crypto';
 import { validateStore } from './validate.mjs';
+import {validateTravel,validateTravelChange,EMPTY_TRAVEL} from '../src/travel-ledger.mjs';
 import {project, eventMonths, persianMonth, effectiveEvents, monthStart} from './ledger.mjs';
 import {writeExternalSnapshot,readExternalStore} from './external.mjs';
 import {assertStartPeriodChange} from '../src/start-period.mjs';
@@ -46,7 +47,30 @@ export class DangStore {
   }
   return this;
  }
- get(){const row=this.db.prepare('SELECT revision,body FROM state WHERE id=1').get();if(!row)throw new Error('داده اصلی دیتابیس یافت نشد.');const store=JSON.parse(row.body);store.closedPeriods??=[];return {revision:Number(row.revision),store};}
+
+ getTravel(){
+  this.db.exec("CREATE TABLE IF NOT EXISTS travel_state (id INTEGER PRIMARY KEY CHECK(id=1),revision INTEGER NOT NULL,body TEXT NOT NULL,changed_at TEXT NOT NULL);CREATE TABLE IF NOT EXISTS travel_backups (revision INTEGER PRIMARY KEY,created_at TEXT NOT NULL,body TEXT NOT NULL)");
+  const row=this.db.prepare('SELECT revision,body FROM travel_state WHERE id=1').get();
+  return row?{revision:row.revision,travel:JSON.parse(row.body)}:{revision:0,travel:structuredClone(EMPTY_TRAVEL)};
+ }
+ saveTravel(travel,expectedRevision,{restore=false}={}){
+  const before=this.getTravel();
+  if(before.revision!==expectedRevision)throw new ConflictError();
+  if(restore)validateTravel(travel);else validateTravelChange(before.travel,travel);
+  this.db.exec('BEGIN IMMEDIATE');
+  try{
+   const current=this.getTravel();if(current.revision!==expectedRevision)throw new ConflictError();
+   const revision=current.revision+1,body=JSON.stringify(travel),timestamp=new Date().toISOString();
+   this.db.prepare('INSERT INTO travel_state(id,revision,body,changed_at) VALUES(1,?,?,?) ON CONFLICT(id) DO UPDATE SET revision=excluded.revision,body=excluded.body,changed_at=excluded.changed_at').run(revision,body,timestamp);
+   this.db.prepare('INSERT INTO travel_backups(revision,created_at,body) VALUES(?,?,?)').run(revision,timestamp,body);
+   this.db.exec('DELETE FROM travel_backups WHERE revision NOT IN(SELECT revision FROM travel_backups ORDER BY revision DESC LIMIT 60)');
+   this.db.exec('COMMIT');
+   return {revision,travel};
+  }catch(err){this.db.exec('ROLLBACK');throw err;}
+ }
+ listTravelBackups(){this.getTravel();return this.db.prepare('SELECT revision,created_at AS createdAt FROM travel_backups ORDER BY revision DESC LIMIT 60').all()}
+ readTravelBackup(revision){this.getTravel();if(!Number.isSafeInteger(revision)||revision<1)throw Error('شماره بک‌آپ سفر نامعتبر است.');const row=this.db.prepare('SELECT body FROM travel_backups WHERE revision=?').get(revision);if(!row)throw Error('بک‌آپ سفر یافت نشد.');return JSON.parse(row.body)}
+  get(){const row=this.db.prepare('SELECT revision,body FROM state WHERE id=1').get();if(!row)throw new Error('داده اصلی دیتابیس یافت نشد.');const store=JSON.parse(row.body);store.closedPeriods??=[];return {revision:Number(row.revision),store};}
  save(raw,expectedRevision,{restore=false,systemAction='',reason=''}={}){
   const next=validateStore(raw);this.verifyLedger(next);const current=this.get();
   if(current.revision!==expectedRevision)throw new ConflictError();
