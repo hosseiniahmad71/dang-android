@@ -1,4 +1,4 @@
-import {isNativeAndroid,nativeRequest,saveAndroidDocument,createAndroidEncryptedBackup,readAndroidEncryptedBackup} from './native-bridge';
+import {isNativeAndroid,nativeRequest,saveAndroidDocument,createAndroidEncryptedBackup,readAndroidEncryptedBackup,createAndroidPortableBackup} from './native-bridge';
 import {initialStore,Store} from './types';
 // @ts-ignore shared native financial validation
 import {validateStore} from './native-validate.mjs';
@@ -75,4 +75,41 @@ export async function inspectEncryptedAndroidBackup(envelope:unknown,passphrase:
  const store=fromEnvelope(await readAndroidEncryptedBackup(envelope,passphrase));
  validateStore(store);const summary=project(store);
  return {store,digest:await storeDigest(store),events:store.events.length,plans:store.plans.length,members:store.members.length,totalCash:summary.totalCash};
+}
+
+/** New exports are plaintext, password-free and contain the entire audited ledger state.
+ * Do not confuse an SHA-256 integrity check with authenticated encryption.
+ */
+export async function exportPortableBackup():Promise<{filename:string,location:string,size:number}>{
+ const store=await loadStore();
+ if(isNativeAndroid())return createAndroidPortableBackup(store);
+ const {encodePortableBackup}=await import('./backup-codec.mjs');
+ const content=JSON.stringify(await encodePortableBackup(store),null,2);
+ const filename=`dang-${new Date().toISOString().replace(/[:.]/g,'-')}.dangbak`;
+ const blob=new Blob([content],{type:'application/json'});
+ const url=URL.createObjectURL(blob),anchor=document.createElement('a');
+ try{anchor.href=url;anchor.download=filename;document.body.append(anchor);anchor.click();anchor.remove();}
+ finally{setTimeout(()=>URL.revokeObjectURL(url),2000)}
+ return {filename,location:'فایل انتخاب‌شده در مرورگر',size:content.length};
+}
+export async function inspectPortableBackup(envelope:unknown,legacyPassword?:string){
+ let raw:unknown;
+ if(envelope&&typeof envelope==='object'&&(envelope as {format?:string}).format==='dang-android-encrypted'){
+  if(!legacyPassword||legacyPassword.length<12)throw Error('این فایل قدیمی رمزگذاری شده است؛ رمز اصلی آن لازم است.');
+  raw=await readAndroidEncryptedBackup(envelope,legacyPassword);
+ }else{
+  const {decodePortableBackup}=await import('./backup-codec.mjs');
+  raw=await decodePortableBackup(envelope);
+ }
+ const store=fromEnvelope(raw);
+ validateStore(store);
+ const summary=project(store);
+ return {store,digest:await storeDigest(store),events:store.events.length,plans:store.plans.length,members:store.members.length,totalCash:summary.totalCash};
+}
+export async function importPortableBackup(envelope:unknown,legacyPassword?:string):Promise<Store>{
+ const {store,digest}=await inspectPortableBackup(envelope,legacyPassword);
+ await restoreStore(store); // Native runtime snapshots before and after restore, transactionally.
+ const saved=await loadStore();
+ if(await storeDigest(saved)!==digest)throw Error('تطبیق داده پس از بازیابی ناموفق بود؛ داده را بررسی کنید.');
+ return saved;
 }
