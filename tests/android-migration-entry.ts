@@ -12,5 +12,5 @@ import {encodeAndroidBackup,storeDigest} from '../src/backup-codec.mjs';
  if(!rejected||await storeDigest(await loadStore())!==digest)throw Error('Wrong password mutated SQLite');
  const restored=await importEncryptedSqlite(envelope,password);
  if(await storeDigest(restored)!==digest||await storeDigest(await loadStore())!==digest)throw Error('SQLite restore mismatch');
- return {digest,events:restored.events.length,plans:restored.plans.length};
+ return {digest,events:restored.events.length,plans:restored.plans.length,totalCash:checked.totalCash};
 };

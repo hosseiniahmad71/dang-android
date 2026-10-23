@@ -46,8 +46,19 @@ public class StartupTest {
  private int eventCount() throws Exception {return Integer.parseInt(js("return JSON.parse(DangNative.invoke(JSON.stringify({op:'get'}))).value.store.events.length"));}
  private void screenshot(String name) throws Exception {
   Bitmap image=InstrumentationRegistry.getInstrumentation().getUiAutomation().takeScreenshot();
-  File dir=InstrumentationRegistry.getInstrumentation().getTargetContext().getExternalFilesDir(null);
-  try(FileOutputStream out=new FileOutputStream(new File(dir,name+".png"))){image.compress(Bitmap.CompressFormat.PNG,100,out);}
+  assertNotNull("Android screenshot unavailable",image);
+  try(android.os.ParcelFileDescriptor mkdir=InstrumentationRegistry.getInstrumentation().getUiAutomation().executeShellCommand("mkdir -p /sdcard/Download/dang73")){
+   new android.os.ParcelFileDescriptor.AutoCloseInputStream(mkdir).readAllBytes();
+  }
+  android.os.ParcelFileDescriptor[] pipes=InstrumentationRegistry.getInstrumentation().getUiAutomation().executeShellCommandRw("sh -c 'cat > /sdcard/Download/dang73/"+name+".png'");
+  try(android.os.ParcelFileDescriptor.AutoCloseOutputStream out=new android.os.ParcelFileDescriptor.AutoCloseOutputStream(pipes[1])){image.compress(Bitmap.CompressFormat.PNG,100,out);}
+  try(android.os.ParcelFileDescriptor.AutoCloseInputStream in=new android.os.ParcelFileDescriptor.AutoCloseInputStream(pipes[0])){in.readAllBytes();}
+ }
+ private boolean accept(android.view.accessibility.AccessibilityNodeInfo node){
+  if(node==null)return false;
+  if("تأیید".contentEquals(node.getText()==null?"":node.getText()))return node.performAction(android.view.accessibility.AccessibilityNodeInfo.ACTION_CLICK);
+  for(int i=0;i<node.getChildCount();i++)if(accept(node.getChild(i)))return true;
+  return false;
  }
  @Test public void offlineDashboardFinanceAndReopen() throws Exception {
   until("document.querySelector('.app-shell') && document.getElementById('startup-panel').hidden");
@@ -71,12 +82,24 @@ public class StartupTest {
   until("document.querySelectorAll('.schedule-row').length>0 || document.querySelector('form').innerText.includes('۲۵۰')");
   js("document.querySelector('form button[type=submit]').click();return true");
   until("JSON.parse(DangNative.invoke(JSON.stringify({op:'get'}))).value.store.plans.length===1");
+  tap(".operation-tabs button b","پرداخت قسط");
+  js("document.querySelector('form .select-trigger').click();return true");
+  until("document.querySelector('[role=option]')");
+  js("document.querySelector('[role=option]').click();return true");Thread.sleep(250);
+  js("document.querySelector('form button[type=submit]').click();return true");
+  until("JSON.parse(DangNative.invoke(JSON.stringify({op:'get'}))).value.store.events.length===3");
   tap(".mobile-nav button","اقساط");screenshot("02-installments");
-  tap(".mobile-nav button","تاریخچه");assertEquals("2",js("return document.querySelectorAll('.record').length"));screenshot("03-history");
+  tap(".mobile-nav button","تاریخچه");assertEquals("3",js("return document.querySelectorAll('.record').length"));
+  scenario.getScenario().onActivity(a->find(a.getWindow().getDecorView()).evaluateJavascript("document.querySelector('.record-kind-purchase button').click()",null));
+  boolean accepted=false;
+  for(int i=0;i<100&&!accepted;i++){accepted=accept(InstrumentationRegistry.getInstrumentation().getUiAutomation().getRootInActiveWindow());if(!accepted)Thread.sleep(100);}
+  assertTrue("Native Persian cancellation confirmation missing",accepted);
+  until("document.querySelector('.cancelled-stamp')");
+  assertEquals("3",js("return document.querySelectorAll('.record').length"));assertEquals(4,eventCount());screenshot("03-history");
   tap(".mobile-nav button","تنظیمات");assertEquals("0",js("return document.querySelectorAll('.settings-accordion[open]').length"));screenshot("04-settings");
   scenario.getScenario().recreate();
-  until("document.querySelector('.app-shell') && document.getElementById('startup-panel').hidden");assertEquals(2,eventCount());
-  assertEquals("9900000",js("var s=JSON.parse(DangNative.invoke(JSON.stringify({op:'get'}))).value.store;return s.events[0].amount-s.events[1].amount"));
+  until("document.querySelector('.app-shell') && document.getElementById('startup-panel').hidden");assertEquals(4,eventCount());
+
   String migrationScript;
   try(java.io.InputStream in=InstrumentationRegistry.getInstrumentation().getContext().getAssets().open("migration-test.js")){
    migrationScript=new String(in.readAllBytes(),java.nio.charset.StandardCharsets.UTF_8);
@@ -86,12 +109,13 @@ public class StartupTest {
   js("window.dangMigrationTest().then(x=>window.migrationResult=x).catch(e=>window.migrationFailure=String(e));return true");
   until("window.migrationResult || window.migrationFailure");
   assertEquals("true",js("return typeof window.migrationFailure==='undefined'"));
-  assertEquals("2",js("return window.migrationResult.events"));
+  assertEquals("4",js("return window.migrationResult.events"));
   assertEquals("1",js("return window.migrationResult.plans"));
+  assertEquals("9750000",js("return window.migrationResult.totalCash"));
   // Verify the module-independent guard can report a fatal runtime error and retry safely.
   js("window.dangStartup.fail(new Error('instrumented startup failure'));return true");
   until("!document.getElementById('startup-panel').hidden && !document.getElementById('startup-actions').hidden");screenshot("05-error-recovery");
   js("window.retryMarker=true;document.getElementById('startup-retry').click();return true");
-  until("!window.retryMarker && document.querySelector('.app-shell') && document.getElementById('startup-panel').hidden");assertEquals(2,eventCount());
+  until("!window.retryMarker && document.querySelector('.app-shell') && document.getElementById('startup-panel').hidden");assertEquals(4,eventCount());
  }
 }
