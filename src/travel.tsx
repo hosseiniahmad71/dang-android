@@ -17,7 +17,7 @@ const toman=(n:number)=>fnum(n)+' تومان';
 const bytes=async(text:string)=>{const buf=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(text));return Array.from(new Uint8Array(buf),b=>b.toString(16).padStart(2,'0')).join('')};
 const getName=(t:Trip,id:string)=>t.participants.find(p=>p.id===id)?.name||'—';
 function participantItems(t:Trip){return t.participants.map(p=>({value:p.id,label:p.name}))}
-export function TravelView({onHome}:{onHome:()=>void}){
+export function TravelView({onHome:_onHome}:{onHome:()=>void}){
  const [travel,setTravel]=useState<Travel>(()=>structuredClone(EMPTY_TRAVEL) as Travel);
  const [rev,setRev]=useState(0),[ready,setReady]=useState(false),[busy,setBusy]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState('');
  const [selected,setSelected]=useState(''),[tab,setTab]=useState<Tab>('overview');
