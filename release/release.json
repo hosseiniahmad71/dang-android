@@ -2,12 +2,8 @@
   "product": "Dong",
   "appNameFa": "دُنگ",
   "versionName": "1.0.0",
-  "versionCode": 16,
-  "applicationId": "ir.dang.household",
-  "certificateSha256": "2b468a624312d5db6028984714f8c9663f6873c87c9a950c5fe0fc6787416108",
-  "baseline": {
-    "apk": "tests/upgrade-apks/update-7.3.1.apk",
-    "versionName": "7.3.1",
-    "versionCode": 14
-  }
+  "versionCode": 1,
+  "applicationId": "ir.dong.household",
+  "baseline": "fresh-install",
+  "signingPolicy": "new persistent Dong signing key; never use ephemeral CI validation key for future updates"
 }
