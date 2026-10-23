@@ -65,3 +65,11 @@
 .deposit-member-toggle{display:flex;align-items:center;gap:10px;cursor:pointer;font-weight:700}
 .deposit-member-toggle input{width:20px;height:20px;accent-color:#148e78;flex:none}
 .deposit-member-row .control{max-width:100%}
+/* v7.2 — cancelled entries occupy only their original row; reversal stays in SQLite. */
+.cancelled-stamp{display:inline-block;vertical-align:middle;margin-inline:8px;padding:3px 9px;border-radius:999px;background:#ffe9a6;border:1px solid #e9c55e;color:#755014;font-weight:800;font-size:11px;white-space:nowrap}
+.reversed-record{border-inline-start:5px solid #e9be4b!important;background:#fffdf3}
+.reversed-record .record-icon{background:#fff0c4;color:#9e6b10}
+.reversed-record .record-amount>b{text-decoration:line-through;color:#9a8b72}
+.start-period-fixed{display:flex;flex-direction:column;gap:6px;padding:12px;border-radius:11px;background:#f4f7fb}
+.start-period-fixed strong{font-size:16px;color:#1b3040}
+.start-period-fixed small{font-size:11px;color:#74828b}

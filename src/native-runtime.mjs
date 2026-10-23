@@ -39,6 +39,13 @@ export function validateTransition(current,next,{restore=false,systemAction=''}=
   if(!eq(expected,same))bad('تغییر رویداد مالی قبلی مجاز نیست.');
  }
  const newlyAdded=next.events.filter(e=>!beforeIds.has(e.id));
+  // Existing historical data is never deleted or rewritten. New financial events
+  // and their assigned months must start on or after Mehr 1405.
+  if(next.startPeriod<'1405/07')bad('شروع دوره مالی نمی‌تواند قبل از مهر ۱۴۰۵ باشد.');
+  for(const e of newlyAdded){
+   if(e.kind!=='reversal'&&eventMonths(e).some(period=>period<'1405/07'))
+    bad('ثبت رویداد یا تخصیص دنگ قبل از مهر ۱۴۰۵ مجاز نیست.');
+  }
  if(systemAction!=='obligation-adjust'&&newlyAdded.some(e=>e.kind==='obligationAdjust'))bad('تعدیل تعهد فقط از مسیر حسابرسی‌شده مجاز است.');
  if(systemAction==='obligation-adjust'&&newlyAdded.filter(e=>e.kind==='obligationAdjust').length!==1)bad('تعدیل تعهد نامعتبر است.');
  if(systemAction!=='reverse'&&newlyAdded.some(e=>e.kind==='reversal'))bad('ابطال فقط از مسیر ثبت سند برگشتی مجاز است.');
@@ -47,6 +54,7 @@ export function validateTransition(current,next,{restore=false,systemAction=''}=
  if(depositBatch.length){const today=new Intl.DateTimeFormat('en-CA',{year:'numeric',month:'2-digit',day:'2-digit',timeZone:'Asia/Tehran'}).format(new Date());validateDepositBatch(current,depositBatch,today);}
  for(const e of newlyAdded)if((current.closedPeriods||[]).some(p=>eventMonths(e).includes(p)))bad('ماه مالی قفل است؛ برای تغییر ابتدا آن را با دلیل باز کنید.');
  for(const p of next.plans.filter(p=>!current.plans.some(x=>x.id===p.id))){
+   if(persianMonth(p.createdDate)<'1405/07'||p.installments.some(i=>persianMonth(i.dueDate)<'1405/07'))bad('خرید اقساطی قبل از مهر ۱۴۰۵ مجاز نیست.');
   if((current.closedPeriods||[]).some(x=>x===persianMonth(p.createdDate)||p.installments.some(i=>persianMonth(i.dueDate)===x)))bad('ثبت قرارداد در ماه بسته مجاز نیست.');
   if(p.installments.some(i=>i.dueDate<p.createdDate))bad('سررسید قسط پیش از تاریخ خرید معتبر نیست.');
  }

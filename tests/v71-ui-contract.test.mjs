@@ -14,7 +14,7 @@ test('installments automatically refresh when product, amount, purchase date, pr
  assert.match(rules,/tara-two/);assert.match(rules,/pay-next-month/);assert.match(rules,/four-with-downpayment/);
 });
 test('finance history has all requested color-coded operation categories',()=>{
- assert.match(main,/record-kind-\$\{e.kind\}/);
+ assert.match(main,/record-kind-\$\{cancelled\?'reversal':event.kind\}/);
  for(const color of ['deposit','purchase','reversal','payment','waiver','creditMove','transfer','refund','obligationAdjust'])assert.match(css,new RegExp('record-kind-'+color+'\\b'));
 });
 test('forms pay from Maryam fund custody without treating household money as a member personal credit',()=>{

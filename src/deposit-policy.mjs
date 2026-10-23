@@ -8,7 +8,7 @@ export function validateDepositBatch(store,batch,today){
  for(const e of batch){
   if(e.kind!=='deposit'||e.destinationId===undefined)continue; // Old v6 origin records remain valid.
   if(e.period<minPeriod)throw Error('دنگ فقط برای ماه قبل، ماه جاری یا ماه‌های آینده قابل تخصیص است.');
-  if(e.period<store.startPeriod)throw Error('دوره قبل از شروع صندوق مجاز نیست.');
+  if(e.period<'1405/07'||e.period<store.startPeriod)throw Error('دوره قبل از مهر ۱۴۰۵ یا شروع صندوق مجاز نیست.');
   if(e.date<today&&!e.creditOnly)throw Error('پرداخت با تاریخ گذشته صرفاً با هشدار و ثبت اعتبار بدون ورود وجه به صندوق مجاز است.');
   if(e.date>=today&&e.creditOnly)throw Error('اعتبار غیرنقدی مخصوص ثبت با تاریخ گذشته است.');
   if(e.destinationId!==undefined&&e.destinationId!==e.accountId)throw Error('حساب مقصد واریز یکسان نیست.');
