@@ -3,6 +3,7 @@
 import {validateStore} from './native-validate.mjs';
 import {project,eventMonths,persianMonth,monthStart} from './native-ledger.mjs';
 import {validateDepositBatch} from './deposit-policy.mjs';
+import {validateTravel,validateTravelChange} from './travel-ledger.mjs';
 import {assertStartPeriodChange} from './start-period.mjs';
 
 const bad=m=>{throw Error(m)};
@@ -81,6 +82,17 @@ export function createNativeRuntime(invoke,initialStore){
  }
  function writeSnapshot(reason){return call('backup',{reason});}
  async function request(url,method='GET',x={}){
+  if(url==='/api/travel'&&method==='GET')return call('travelGet');
+  if(url==='/api/travel'&&method==='PUT'){
+   const old=call('travelGet');validateTravelChange(old.travel,x.travel);
+   if(old.revision!==x.expectedRevision)bad('دنگ سفر تغییر کرده است؛ دوباره تلاش کن.');
+   return call('travelSave',{travel:x.travel,expectedRevision:x.expectedRevision});
+  }
+  if(url==='/api/travel/restore'&&method==='POST'){
+   validateTravel(x.travel);return call('travelSave',{travel:x.travel,expectedRevision:x.expectedRevision});
+  }
+  if(url==='/api/travel/backups'&&method==='GET')return {items:call('travelBackups')};
+  if(url.startsWith('/api/travel/backups/')&&method==='GET')return {travel:call('travelReadBackup',{revision:Number(url.split('/').at(-1))})};
   if(url==='/api/store'&&method==='GET')return get();
   if(url==='/api/store'&&method==='PUT')return commit(x.store,x.expectedRevision);
   if(url==='/api/backups'&&method==='GET')return {items:call('list')};
