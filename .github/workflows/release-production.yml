@@ -4,7 +4,7 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: dong-owner-signed-release
+  group: dong-v1-owner-signed-release
   cancel-in-progress: false
 jobs:
   release:
@@ -42,48 +42,48 @@ jobs:
           echo "version=$(node -p 'require("./release/release.json").versionName')" >> "$GITHUB_OUTPUT"
       - name: Load owner-managed persistent key, fail if absent
         env:
-          DANG_KEYSTORE_BASE64: ${{ secrets.DANG_KEYSTORE_BASE64 }}
-          DANG_KEYSTORE_PASSWORD: ${{ secrets.DANG_KEYSTORE_PASSWORD }}
-          DANG_KEY_ALIAS: ${{ secrets.DANG_KEY_ALIAS }}
-          DANG_KEY_PASSWORD: ${{ secrets.DANG_KEY_PASSWORD }}
-          DANG_KEYSTORE_PATH: ${{ runner.temp }}/dang-release.jks
+          DONG_KEYSTORE_BASE64: ${{ secrets.DONG_KEYSTORE_BASE64 }}
+          DONG_KEYSTORE_PASSWORD: ${{ secrets.DONG_KEYSTORE_PASSWORD }}
+          DONG_KEY_ALIAS: ${{ secrets.DONG_KEY_ALIAS }}
+          DONG_KEY_PASSWORD: ${{ secrets.DONG_KEY_PASSWORD }}
+          DONG_KEYSTORE_PATH: ${{ runner.temp }}/dong-release.jks
         shell: bash
         run: |
           set -euo pipefail
-          test -n "$DANG_KEYSTORE_BASE64"
-          test -n "$DANG_KEYSTORE_PASSWORD"
-          test -n "$DANG_KEY_ALIAS"
-          test -n "$DANG_KEY_PASSWORD"
+          test -n "$DONG_KEYSTORE_BASE64"
+          test -n "$DONG_KEYSTORE_PASSWORD"
+          test -n "$DONG_KEY_ALIAS"
+          test -n "$DONG_KEY_PASSWORD"
           umask 077
-          printf '%s' "$DANG_KEYSTORE_BASE64" | base64 --decode > "$DANG_KEYSTORE_PATH"
-          chmod 600 "$DANG_KEYSTORE_PATH"
-          echo "DANG_KEYSTORE_PATH=$DANG_KEYSTORE_PATH" >> "$GITHUB_ENV"
-          echo "DANG_KEYSTORE_PASSWORD=$DANG_KEYSTORE_PASSWORD" >> "$GITHUB_ENV"
-          echo "DANG_KEY_ALIAS=$DANG_KEY_ALIAS" >> "$GITHUB_ENV"
-          echo "DANG_KEY_PASSWORD=$DANG_KEY_PASSWORD" >> "$GITHUB_ENV"
+          printf '%s' "$DONG_KEYSTORE_BASE64" | base64 --decode > "$DONG_KEYSTORE_PATH"
+          chmod 600 "$DONG_KEYSTORE_PATH"
+          echo "DONG_KEYSTORE_PATH=$DONG_KEYSTORE_PATH" >> "$GITHUB_ENV"
+          echo "DONG_KEYSTORE_PASSWORD=$DONG_KEYSTORE_PASSWORD" >> "$GITHUB_ENV"
+          echo "DONG_KEY_ALIAS=$DONG_KEY_ALIAS" >> "$GITHUB_ENV"
+          echo "DONG_KEY_PASSWORD=$DONG_KEY_PASSWORD" >> "$GITHUB_ENV"
       - name: Build release and matching Android test APK
         shell: bash
         run: |
           set -euo pipefail
           cd android
-          gradle --no-daemon assembleRelease assembleReleaseAndroidTest -PdangTestBuildType=release
+          gradle --no-daemon assembleRelease assembleReleaseAndroidTest -PdongTestBuildType=release
           # Android test APK must carry the same owner key as the target app for instrumentation.
           TEST_APK=app/build/outputs/apk/androidTest/release/app-release-androidTest.apk
           TEST_SIGNED=app/build/outputs/apk/androidTest/release/app-release-androidTest-signed.apk
-          "$ANDROID_HOME/build-tools/35.0.0/apksigner" sign --ks "$DANG_KEYSTORE_PATH" --ks-key-alias "$DANG_KEY_ALIAS" --ks-pass env:DANG_KEYSTORE_PASSWORD --key-pass env:DANG_KEY_PASSWORD --out "$TEST_SIGNED" "$TEST_APK"
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" sign --ks "$DONG_KEYSTORE_PATH" --ks-key-alias "$DONG_KEY_ALIAS" --ks-pass env:DONG_KEYSTORE_PASSWORD --key-pass env:DONG_KEY_PASSWORD --out "$TEST_SIGNED" "$TEST_APK"
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify "$TEST_SIGNED"
       - name: Verify exact production certificate and previous version
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p production-evidence
-          python3 scripts/verify-apk.py android/app/build/outputs/apk/release/app-release.apk --aapt "$ANDROID_HOME/build-tools/35.0.0/aapt" --expected-package ir.dang.household | tee production-evidence/apk-metadata.json
+          python3 scripts/verify-apk.py android/app/build/outputs/apk/release/app-release.apk --aapt "$ANDROID_HOME/build-tools/35.0.0/aapt" --expected-package ir.dong.household | tee production-evidence/apk-metadata.json
           python3 - <<'PY'
           import pathlib,subprocess,re,json,os,hashlib
           root=pathlib.Path(os.environ['ANDROID_HOME'])/'build-tools/35.0.0'
           release=json.loads(pathlib.Path('release/release.json').read_text())
           expected=release['certificateSha256']
-          assert release['product']=='Dong' and release['applicationId']=='ir.dang.household'
+          assert release['product']=='Dong' and release['applicationId']=='ir.dong.household'
           assert release['versionCode']>release['baseline']['versionCode']
           old=pathlib.Path(release['baseline']['apk'])
           assert str(old).startswith('tests/upgrade-apks/') and old.is_file()
@@ -134,4 +134,4 @@ jobs:
         if: always()
         shell: bash
         run: |
-          rm -f "$RUNNER_TEMP/dang-release.jks"
+          rm -f "$RUNNER_TEMP/dong-release.jks"
