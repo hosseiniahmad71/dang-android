@@ -9,7 +9,10 @@ import {randomUUID} from 'node:crypto';
 
 const start='1405/07';
 const offset=(period,delta)=>{const [y,m]=period.split('/').map(Number),k=y*12+m-1+delta;return `${Math.floor(k/12)}/${String(k%12+1).padStart(2,'0')}`};
-const current='2026-10-17'; // 25 Mehr 1405, a deterministic test clock.
+const current='2026-10-17'; // Fixed dates for provider and validation unit tests.
+const stressToday=new Intl.DateTimeFormat('en-CA',{year:'numeric',month:'2-digit',day:'2-digit',timeZone:'Asia/Tehran'}).format(new Date());
+const stressStart=persianMonth(stressToday)<start?start:persianMonth(stressToday);
+// Stress fixtures start in the current month to keep 500-event historical-date validation accurate.
 const base=()=>({version:3,providers:['تارا','دیجی‌پی','اسنپ‌پی','سایر'],backupPolicy:'change',googleClientId:'',
  archivedMembers:[],archivedAccounts:[],archivedCategories:[],archivedProviders:[],
  members:[{id:'a',name:'احمد',contributes:true},{id:'b',name:'مریم',contributes:true},{id:'c',name:'مهدی',contributes:true}],
@@ -90,9 +93,9 @@ test('atomic multi-month credits may be submitted as a valid complete sequence i
 });
 
 function buildStress(months){
- const store=base();store.openingBalance=5_000_000_000;
- const monthKeys=Array.from({length:months},(_,i)=>offset(start,i));
- const planDate=current;
+ const store=base();store.openingBalance=5_000_000_000;store.startPeriod=stressStart;
+ const monthKeys=Array.from({length:months},(_,i)=>offset(stressStart,i));
+ const planDate=stressToday;
  const planSettings=[['اسنپ‌پی',4,120_000_000],['دیجی‌پی',1,120_000_000],['تارا',2,120_000_000]];
  const plans=planSettings.map(([provider,count,total],i)=>({id:`plan-${months}-${i}`,title:`کالای ${i}`,provider,category:'خانه',creditOwnerId:'a',createdDate:planDate,total,
    installments:buildProviderSchedule({provider,count,total,purchaseDate:planDate,createId:k=>`inst-${months}-${i}-${k}`})}));
@@ -100,7 +103,7 @@ function buildStress(months){
  const installmentIds=plans.flatMap(p=>p.installments.map(x=>x.id));
  const rows=[];
  for(let index=0;index<months;index++){
-  const period=monthKeys[index],date=index===0?current:monthStart(period);
+  const period=monthKeys[index],date=index===0?stressToday:monthStart(period);
   rows.push(newDeposit('a',period,date),newDeposit('b',period,date));
   rows.push(ev('purchase',date,20_000_000,{accountId:'a-card',paidById:'a',fundedBy:'personal',category:'سفر',creditPeriod:period}));
   rows.push(ev('transfer',date,100_000_000,{accountId:'fund',destinationId:'b-card'}));
@@ -111,7 +114,7 @@ function buildStress(months){
  // Generate diverse entries distributed across 1, 3, or 6 monthly windows.
  const remaining=498-rows.length;
  for(let i=0;i<remaining;i++){
-  const index=Math.floor(i*months/remaining),period=monthKeys[index],date=index===0?current:monthStart(period);
+  const index=Math.floor(i*months/remaining),period=monthKeys[index],date=index===0?stressToday:monthStart(period);
   const k=i%7;
   if(k===0)rows.push(cashPurchase(date,200_000));
   else if(k===1)rows.push(ev('purchase',date,60_000,{accountId:'b-card',paidById:'',fundedBy:'fund',category:'خانه',creditPeriod:period}));
@@ -125,13 +128,13 @@ function buildStress(months){
  // A reversal, and an audited monthly-obligation adjustment complete exactly 500 entries.
  const firstPurchase=rows.find(e=>e.kind==='purchase'&&e.accountId==='fund');
  const reversal=ev('reversal',firstPurchase.date,0,{originalId:firstPurchase.id,reason:'ابطال خرید اشتباه',recordedAt:new Date().toISOString()});
- const adjustment=ev('obligationAdjust',current,200_000,{direction:'increase',memberId:'c',period:start,reason:'اصلاح تعهد ثبت‌شده',recordedAt:new Date().toISOString()});
+ const adjustment=ev('obligationAdjust',stressToday,200_000,{direction:'increase',memberId:'c',period:stressStart,reason:'اصلاح تعهد ثبت‌شده',recordedAt:new Date().toISOString()});
  return {store,rows,reversal,adjustment,monthKeys};
 }
 for(const months of [1,3,6])test(`500 synthetic operations across ${months} month(s): full domain validator, all payment categories, independent fund/custody/month reconciliation`,()=>{
  const {store,rows,reversal,adjustment,monthKeys}=buildStress(months);
  validateStore({...store,events:rows});
- assert.equal(validateDepositBatch(store,rows,current),true);
+ assert.equal(validateDepositBatch(store,rows,stressToday),true);
  const before=structuredClone(store),batchStore={...store,events:rows};
  validateTransition(before,batchStore);
  const afterReversal={...store,events:[...rows,reversal]};
@@ -171,7 +174,7 @@ for(const months of [1,3,6])test(`500 synthetic operations across ${months} mont
  }
  const amountPaid=payments.reduce((a,e)=>a+e.amount,0);
  assert.ok(amountPaid>0);assert.ok(projection.totalCash>0);
- assert.ok(projection.credits[`${start}|a`]>0);
+ assert.ok(projection.credits[`${stressStart}|a`]>0);
  // Repeating original reversal must be rejected by the projection.
  assert.throws(()=>project({...finalized,events:[...finalized.events,{...reversal,id:randomUUID()}]}),/تکراری/);
 });
