@@ -8,13 +8,14 @@ android {
         minSdk 26
         targetSdk 35
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
-        versionCode 1
+        versionCode 16
         versionName '1.0.0'
     }
     signingConfigs {
         stable {
             if (System.getenv('DONG_KEYSTORE_PATH')) {
                 storeFile file(System.getenv('DONG_KEYSTORE_PATH'))
+                storeType 'pkcs12'
                 storePassword System.getenv('DONG_KEYSTORE_PASSWORD')
                 keyAlias System.getenv('DONG_KEY_ALIAS')
                 keyPassword System.getenv('DONG_KEY_PASSWORD')
