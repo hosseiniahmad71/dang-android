@@ -8,6 +8,8 @@ class Assets(HTMLParser):
         super().__init__(); self.refs=[]
     def handle_starttag(self, tag, attrs):
         attrs=dict(attrs)
+        if tag=='img' and attrs.get('src'): self.refs.append(attrs['src'])
+        if tag=='link' and attrs.get('rel')=='preload': self.refs.append(attrs['href'])
         if tag=='script' and attrs.get('src'): self.refs.append(attrs['src'])
         if tag=='link' and attrs.get('rel')=='stylesheet': self.refs.append(attrs['href'])
 
@@ -35,5 +37,5 @@ if a.aapt:
     }
     assert "android.permission.INTERNET" not in manifest, 'Unexpected INTERNET permission'
     if a.expected_package: assert result['identity']['name']==a.expected_package
-    assert result['identity']['versionCode']=='12'
+    assert result['identity']['versionCode']=='13'
 print(json.dumps(result,ensure_ascii=False,indent=2))

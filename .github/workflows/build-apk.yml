@@ -55,16 +55,23 @@ jobs:
         run: node --test tests/v72-period-purchase-history.test.mjs
       - name: Run complete regression suite
         run: node --test tests/*.test.mjs tests/ui-contract.test.cjs
-      - name: Build signed debug APK
-        run: cd android && gradle --no-daemon assembleDebug
+      - name: Prepare disposable CI-only validation signer
+        run: |
+          keytool -genkeypair -noprompt -keystore "$RUNNER_TEMP/dang-validation.jks" -storepass ci-validation-only -keypass ci-validation-only -alias validation -keyalg RSA -keysize 2048 -validity 2 -dname 'CN=CI validation only'
+          echo "DANG_KEYSTORE_PATH=$RUNNER_TEMP/dang-validation.jks" >> "$GITHUB_ENV"
+          echo 'DANG_KEYSTORE_PASSWORD=ci-validation-only' >> "$GITHUB_ENV"
+          echo 'DANG_KEY_ALIAS=validation' >> "$GITHUB_ENV"
+          echo 'DANG_KEY_PASSWORD=ci-validation-only' >> "$GITHUB_ENV"
+      - name: Build release payload for runtime validation
+        run: cd android && gradle --no-daemon assembleRelease assembleReleaseAndroidTest -PdangTestBuildType=release
       - name: Verify actual APK package, assets and ZIP integrity
         run: |
           mkdir -p runtime-evidence
-          python3 scripts/verify-apk.py android/app/build/outputs/apk/debug/app-debug.apk --aapt "$ANDROID_HOME/build-tools/35.0.0/aapt" --expected-package ir.dang.household.preview73 | tee runtime-evidence/apk-metadata.json
+          python3 scripts/verify-apk.py android/app/build/outputs/apk/release/app-release.apk --aapt "$ANDROID_HOME/build-tools/35.0.0/aapt" --expected-package ir.dang.household | tee runtime-evidence/apk-metadata.json
       - uses: actions/upload-artifact@v4
         with:
-          name: Dang-v7.3.0-DIAGNOSTIC-preview73-apk
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          name: Dang-v7.3.0-release-payload-CI-validation-only
+          path: android/app/build/outputs/apk/release/app-release.apk
           if-no-files-found: error
 
       - name: Enable KVM for Android runtime tests
@@ -84,8 +91,8 @@ jobs:
         if: always()
         run: |
           mkdir -p runtime-evidence
-          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs android/app/build/outputs/apk/debug/app-debug.apk > runtime-evidence/signature.txt
-          sha256sum android/app/build/outputs/apk/debug/app-debug.apk > runtime-evidence/SHA256SUMS.txt
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs android/app/build/outputs/apk/release/app-release.apk > runtime-evidence/signature.txt
+          sha256sum android/app/build/outputs/apk/release/app-release.apk > runtime-evidence/SHA256SUMS.txt
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -125,3 +132,7 @@ jobs:
             android/app/build/outputs/apk/release/app-release.apk
             android/release-signature.txt
           if-no-files-found: error
+
+      - name: Remove disposable CI key
+        if: always()
+        run: rm -f "$RUNNER_TEMP/dang-validation.jks"

@@ -2,13 +2,14 @@ plugins { id 'com.android.application' }
 android {
     namespace 'ir.dang.household'
     compileSdk 35
+    testBuildType providers.gradleProperty('dangTestBuildType').getOrElse('debug')
     defaultConfig {
         applicationId providers.gradleProperty('dangApplicationId').getOrElse('ir.dang.household')
         minSdk 26
         targetSdk 35
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
-        versionCode 12
-        versionName '7.3.0-alpha'
+        versionCode 13
+        versionName '7.3.0'
     }
     signingConfigs {
         stable {

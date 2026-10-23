@@ -45,7 +45,7 @@ public final class MainActivity extends Activity {
         super.onCreate(bundle);
         // Keep notification icons, clock, and battery visible on a solid status-bar background.
         getWindow().setStatusBarColor(Color.WHITE);
-        getWindow().setNavigationBarColor(Color.rgb(245,247,250));
+        getWindow().setNavigationBarColor(Color.rgb(247,248,252));
         getWindow().getDecorView().setSystemUiVisibility(
             View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR | View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR
         );
@@ -55,6 +55,8 @@ public final class MainActivity extends Activity {
         web=new WebView(this);
         web.setBackgroundColor(Color.WHITE);
         web.getSettings().setJavaScriptEnabled(true);
+        web.getSettings().setUseWideViewPort(true);
+        web.getSettings().setLoadWithOverviewMode(false);
         web.getSettings().setDomStorageEnabled(false);
         web.getSettings().setAllowFileAccess(false);
         web.getSettings().setAllowContentAccess(true);
@@ -73,7 +75,7 @@ public final class MainActivity extends Activity {
                 if(path==null||path.equals("/"))path="/index.html";
                 if(path.contains("..")||path.contains("\\")||path.contains("%"))return empty404();
                 String name=path.substring(1);
-                String mime=name.endsWith(".html")?"text/html":name.endsWith(".js")?"text/javascript":name.endsWith(".css")?"text/css":name.endsWith(".svg")?"image/svg+xml":name.endsWith(".png")?"image/png":name.endsWith(".json")?"application/json":"application/octet-stream";
+                String mime=name.endsWith(".html")?"text/html":name.endsWith(".js")?"text/javascript":name.endsWith(".css")?"text/css":name.endsWith(".svg")?"image/svg+xml":name.endsWith(".png")?"image/png":name.endsWith(".woff2")?"font/woff2":name.endsWith(".json")?"application/json":"application/octet-stream";
                 try{InputStream in=getAssets().open("web/"+name);return new WebResourceResponse(mime,"utf-8",in);}catch(Exception ex){return empty404();}
             }
             @Override public void onReceivedError(WebView view,WebResourceRequest request,WebResourceError error){
@@ -164,7 +166,7 @@ public final class MainActivity extends Activity {
                 pendingId=id;pendingContent=content;
                 Intent intent=new Intent(Intent.ACTION_CREATE_DOCUMENT);
                 intent.addCategory(Intent.CATEGORY_OPENABLE);
-                intent.setType(filename.endsWith(".json")?"application/json":"application/octet-stream");
+                intent.setType(filename.endsWith(".woff2")?"font/woff2":name.endsWith(".json")?"application/json":"application/octet-stream");
                 intent.putExtra(Intent.EXTRA_TITLE,filename);
                 try{startActivityForResult(intent,SAVE_DOCUMENT);}
                 catch(Exception ex){documentResult(id,false,ex.getMessage());pendingId=null;pendingContent=null;}

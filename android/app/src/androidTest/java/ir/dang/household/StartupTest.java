@@ -83,6 +83,10 @@ public class StartupTest {
  }
  @Test public void offlineDashboardFinanceAndReopen() throws Exception {
   until("document.querySelector('.app-shell') && document.getElementById('startup-panel').hidden");
+  assertEquals("true",js("return window.innerWidth<=600 && document.documentElement.scrollWidth<=window.innerWidth+1 && getComputedStyle(document.querySelector('.sidebar')).display==='none'"));
+  until("document.fonts.status==='loaded'");
+  assertEquals("true",js("return document.fonts.check('500 14px Vazirmatn') && Array.from(document.fonts).some(f=>f.family==='Vazirmatn'&&f.status==='loaded')"));
+  assertEquals("true",js("var i=document.querySelector('.topbar-logo');return i.complete&&i.naturalWidth>0&&getComputedStyle(document.documentElement).getPropertyValue('--navy').trim()==='#062c5b'"));
   assertEquals(0,eventCount());
   assertEquals("true",js("return JSON.parse(DangNative.invoke(JSON.stringify({op:'get'}))).value.store.startPeriod==='1405/07'"));
   // Synthetic-only fixture: zero Ahmad's obligations before the current month.
