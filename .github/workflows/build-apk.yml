@@ -88,8 +88,12 @@ jobs:
         if: always()
         run: |
           mkdir -p runtime-evidence
-          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs android/app/build/outputs/apk/release/app-release.apk > runtime-evidence/signature.txt
-          sha256sum android/app/build/outputs/apk/release/app-release.apk > runtime-evidence/SHA256SUMS.txt
+          if test -f android/app/build/outputs/apk/release/app-release.apk; then
+            "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs android/app/build/outputs/apk/release/app-release.apk > runtime-evidence/signature.txt
+            sha256sum android/app/build/outputs/apk/release/app-release.apk > runtime-evidence/SHA256SUMS.txt
+          else
+            echo "No APK was built; previous test step failed." > runtime-evidence/INCOMPLETE.txt
+          fi
       - uses: actions/upload-artifact@v4
         if: always()
         with:
