@@ -1,16 +1,16 @@
-name: Publish signed Dong update (never debug)
+name: Release Dong with permanent owner signer
 on:
   workflow_dispatch:
 permissions:
   contents: read
 concurrency:
-  group: dong-owner-signed-release
+  group: dong-release-owner-signing
   cancel-in-progress: false
 jobs:
   release:
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -23,115 +23,111 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.10.2'
-      - name: Prepare SDK
-        shell: bash
+      - name: Install Android SDK 35
         run: |
           set -euo pipefail
           SDKMANAGER="$(find "${ANDROID_HOME}/cmdline-tools" -maxdepth 3 -type f -name sdkmanager | head -n 1)"
           test -n "$SDKMANAGER"
           "$SDKMANAGER" --install 'platforms;android-35' 'build-tools;35.0.0'
-      - name: Run complete source and financial verification
+      - name: Verify source, financial invariants and Dong identity
         run: |
           set -euo pipefail
           npm ci --no-audit --no-fund
           npm run build:android
+          node scripts/build-android-test.mjs
           node --test tests/*.test.mjs tests/ui-contract.test.cjs
-      - name: Read Dong release version
-        id: meta
+      - name: Ensure first baseline or require upgrade verification for later versions
         run: |
-          echo "version=$(node -p 'require("./release/release.json").versionName')" >> "$GITHUB_OUTPUT"
-      - name: Load owner-managed persistent key, fail if absent
+          node - <<'NODE'
+          const fs=require('fs');
+          const x=require('./release/release.json');
+          if(x.applicationId!=='ir.dong.household'||x.product!=='Dong')throw Error('Wrong product/package');
+          if(x.versionCode===16&&x.versionName==='1.0.0')process.exit(0);
+          // Future versions may NOT reissue a clean-install-only release as an update.
+          if(!x.previousRelease?.apk || !fs.existsSync(x.previousRelease.apk))
+            throw Error('Later Dong versions need a previously OWNER-signed APK and tested in-place upgrade');
+          throw Error('Implement and audit previous-release SQLite install -r comparison before shipping a future version');
+          NODE
+      - name: Load private owner key from Secrets only
         env:
-          DANG_KEYSTORE_BASE64: ${{ secrets.DANG_KEYSTORE_BASE64 }}
-          DANG_KEYSTORE_PASSWORD: ${{ secrets.DANG_KEYSTORE_PASSWORD }}
-          DANG_KEY_ALIAS: ${{ secrets.DANG_KEY_ALIAS }}
-          DANG_KEY_PASSWORD: ${{ secrets.DANG_KEY_PASSWORD }}
-          DANG_KEYSTORE_PATH: ${{ runner.temp }}/dang-release.jks
-        shell: bash
+          DONG_KEYSTORE_BASE64: ${{ secrets.DONG_KEYSTORE_BASE64 }}
+          DONG_KEYSTORE_PASSWORD: ${{ secrets.DONG_KEYSTORE_PASSWORD }}
+          DONG_KEY_ALIAS: ${{ secrets.DONG_KEY_ALIAS }}
+          DONG_KEY_PASSWORD: ${{ secrets.DONG_KEY_PASSWORD }}
+          DONG_KEYSTORE_PATH: ${{ runner.temp }}/dong-release.p12
         run: |
           set -euo pipefail
-          test -n "$DANG_KEYSTORE_BASE64"
-          test -n "$DANG_KEYSTORE_PASSWORD"
-          test -n "$DANG_KEY_ALIAS"
-          test -n "$DANG_KEY_PASSWORD"
+          test -n "$DONG_KEYSTORE_BASE64"
+          test -n "$DONG_KEYSTORE_PASSWORD"
+          test -n "$DONG_KEY_ALIAS"
+          test -n "$DONG_KEY_PASSWORD"
+          test "$DONG_KEY_ALIAS" = 'dong-release'
           umask 077
-          printf '%s' "$DANG_KEYSTORE_BASE64" | base64 --decode > "$DANG_KEYSTORE_PATH"
-          chmod 600 "$DANG_KEYSTORE_PATH"
-          echo "DANG_KEYSTORE_PATH=$DANG_KEYSTORE_PATH" >> "$GITHUB_ENV"
-          echo "DANG_KEYSTORE_PASSWORD=$DANG_KEYSTORE_PASSWORD" >> "$GITHUB_ENV"
-          echo "DANG_KEY_ALIAS=$DANG_KEY_ALIAS" >> "$GITHUB_ENV"
-          echo "DANG_KEY_PASSWORD=$DANG_KEY_PASSWORD" >> "$GITHUB_ENV"
-      - name: Build release and matching Android test APK
-        shell: bash
+          printf '%s' "$DONG_KEYSTORE_BASE64" | base64 --decode > "$DONG_KEYSTORE_PATH"
+          test -s "$DONG_KEYSTORE_PATH"
+          echo "DONG_KEYSTORE_PATH=$DONG_KEYSTORE_PATH" >> "$GITHUB_ENV"
+      - name: Compile and sign APK with permanent Dong key
+        env:
+          DONG_KEYSTORE_PASSWORD: ${{ secrets.DONG_KEYSTORE_PASSWORD }}
+          DONG_KEY_ALIAS: ${{ secrets.DONG_KEY_ALIAS }}
+          DONG_KEY_PASSWORD: ${{ secrets.DONG_KEY_PASSWORD }}
         run: |
-          set -euo pipefail
           cd android
-          gradle --no-daemon assembleRelease assembleReleaseAndroidTest -PdangTestBuildType=release
-          # Android test APK must carry the same owner key as the target app for instrumentation.
-          TEST_APK=app/build/outputs/apk/androidTest/release/app-release-androidTest.apk
-          TEST_SIGNED=app/build/outputs/apk/androidTest/release/app-release-androidTest-signed.apk
-          "$ANDROID_HOME/build-tools/35.0.0/apksigner" sign --ks "$DANG_KEYSTORE_PATH" --ks-key-alias "$DANG_KEY_ALIAS" --ks-pass env:DANG_KEYSTORE_PASSWORD --key-pass env:DANG_KEY_PASSWORD --out "$TEST_SIGNED" "$TEST_APK"
-          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify "$TEST_SIGNED"
-      - name: Verify exact production certificate and previous version
-        shell: bash
+          gradle --no-daemon assembleRelease assembleReleaseAndroidTest -PdongTestBuildType=release
+      - name: Pin APK package identity, version and owner certificate
         run: |
           set -euo pipefail
           mkdir -p production-evidence
-          python3 scripts/verify-apk.py android/app/build/outputs/apk/release/app-release.apk --aapt "$ANDROID_HOME/build-tools/35.0.0/aapt" --expected-package ir.dang.household | tee production-evidence/apk-metadata.json
+          python3 scripts/verify-apk.py android/app/build/outputs/apk/release/app-release.apk --aapt "$ANDROID_HOME/build-tools/35.0.0/aapt" --expected-package ir.dong.household | tee production-evidence/apk-metadata.json
           python3 - <<'PY'
-          import pathlib,subprocess,re,json,os,hashlib
+          import subprocess,os,hashlib,json,pathlib
           root=pathlib.Path(os.environ['ANDROID_HOME'])/'build-tools/35.0.0'
-          release=json.loads(pathlib.Path('release/release.json').read_text())
-          expected=release['certificateSha256']
-          assert release['product']=='Dong' and release['applicationId']=='ir.dang.household'
-          assert release['versionCode']>release['baseline']['versionCode']
-          old=pathlib.Path(release['baseline']['apk'])
-          assert str(old).startswith('tests/upgrade-apks/') and old.is_file()
-          new=pathlib.Path('android/app/build/outputs/apk/release/app-release.apk')
-          test=pathlib.Path('android/app/build/outputs/apk/androidTest/release/app-release-androidTest-signed.apk')
-          results=[]
-          for p,code,package in [(old,release['baseline']['versionCode'],release['applicationId']),(new,release['versionCode'],release['applicationId']),(test,None,release['applicationId']+'.test')]:
-              signature=subprocess.check_output([str(root/'apksigner'),'verify','--print-certs',str(p)],text=True).lower()
-              assert ('certificate sha-256 digest: '+expected) in signature, 'Refuse mismatch of original production certificate for '+str(p)
-              info=subprocess.check_output([str(root/'aapt'),'dump','badging',str(p)],text=True)
-              assert "package: name='"+package+"'" in info, 'Unexpected package in '+str(p)
-              if code is not None: assert "versionCode='"+str(code)+"'" in info, 'Wrong versionCode in '+str(p)
-              results.append({'filename':str(p),'sha256':hashlib.sha256(p.read_bytes()).hexdigest(),'certificate':expected,'versionCode':code})
-          pathlib.Path('production-evidence/identity.json').write_text(json.dumps(results,indent=2))
-          print(json.dumps(results,indent=2))
+          p=pathlib.Path('android/app/build/outputs/apk/release/app-release.apk')
+          cfg=json.loads(pathlib.Path('release/release.json').read_text())
+          verify=subprocess.check_output([str(root/'apksigner'),'verify','--print-certs',str(p)],text=True).lower()
+          assert 'certificate sha-256 digest: '+cfg['certificateSha256'] in verify,'Dong owner certificate mismatch'
+          info=subprocess.check_output([str(root/'aapt'),'dump','badging',str(p)],text=True)
+          assert "package: name='"+cfg['applicationId']+"'" in info,'Unexpected package identity'
+          assert "versionCode='"+str(cfg['versionCode'])+"'" in info,'Unexpected versionCode'
+          assert "versionName='"+cfg['versionName']+"'" in info,'Unexpected versionName'
+          evidence={'apkSha256':hashlib.sha256(p.read_bytes()).hexdigest(),'certificateSha256':cfg['certificateSha256'],'applicationId':cfg['applicationId'],'versionName':cfg['versionName'],'versionCode':cfg['versionCode']}
+          pathlib.Path('production-evidence/identity.json').write_text(json.dumps(evidence,indent=2))
+          print(json.dumps(evidence,indent=2))
           PY
-      - name: Enable emulator acceleration
-        shell: bash
+      - name: Sign instrumentation APK with the exact same owner key
+        env:
+          DONG_KEYSTORE_PASSWORD: ${{ secrets.DONG_KEYSTORE_PASSWORD }}
+          DONG_KEY_ALIAS: ${{ secrets.DONG_KEY_ALIAS }}
+          DONG_KEY_PASSWORD: ${{ secrets.DONG_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          APK=android/app/build/outputs/apk/androidTest/release/app-release-androidTest.apk
+          OUT=android/app/build/outputs/apk/androidTest/release/dong-test-signed.apk
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" sign --ks "$DONG_KEYSTORE_PATH" --ks-key-alias "$DONG_KEY_ALIAS" --ks-pass env:DONG_KEYSTORE_PASSWORD --key-pass env:DONG_KEY_PASSWORD --out "$OUT" "$APK"
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify "$OUT"
+      - name: Enable KVM for Android test
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
-      - name: Verify production-signed in-place upgrade with SQLite and backups
+      - name: Check official APK launches and SQLite runs in offline emulator
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 35
           arch: x86_64
           target: google_apis
           disable-animations: true
-          script: bash scripts/run-production-upgrade.sh
-      - name: Preserve evidence digest
-        if: success()
-        shell: bash
-        run: |
-          sha256sum android/app/build/outputs/apk/release/app-release.apk > production-evidence/SHA256SUMS.txt
-          cp upgrade-evidence/summary.json production-evidence/upgrade-summary.json
-      - name: Upload only verified installable production APK
+          script: bash scripts/run-dong-release-smoke.sh
+      - name: Store the verified owner-signed APK and metadata
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: Dong-v${{ steps.meta.outputs.version }}-OWNER-SIGNED-VERIFIED-UPGRADE
+          name: Dong-v1.0.0-OWNER-SIGNED-VERIFIED
           retention-days: 14
           path: |
             android/app/build/outputs/apk/release/app-release.apk
             production-evidence/
           if-no-files-found: error
-      - name: Wipe private key from CI runner
+      - name: Destroy temporary signing material
         if: always()
-        shell: bash
-        run: |
-          rm -f "$RUNNER_TEMP/dang-release.jks"
+        run: rm -f "$RUNNER_TEMP/dong-release.p12"
