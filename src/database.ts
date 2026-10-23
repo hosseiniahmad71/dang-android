@@ -83,6 +83,7 @@ export async function inspectEncryptedAndroidBackup(envelope:unknown,passphrase:
 export async function exportPortableBackup():Promise<{filename:string,location:string,size:number}>{
  const store=await loadStore();
  if(isNativeAndroid())return createAndroidPortableBackup(store);
+ // @ts-ignore audited JavaScript module (no TypeScript declaration file)
  const {encodePortableBackup}=await import('./backup-codec.mjs');
  const content=JSON.stringify(await encodePortableBackup(store),null,2);
  const filename=`dang-${new Date().toISOString().replace(/[:.]/g,'-')}.dangbak`;
@@ -98,6 +99,7 @@ export async function inspectPortableBackup(envelope:unknown,legacyPassword?:str
   if(!legacyPassword||legacyPassword.length<12)throw Error('این فایل قدیمی رمزگذاری شده است؛ رمز اصلی آن لازم است.');
   raw=await readAndroidEncryptedBackup(envelope,legacyPassword);
  }else{
+  // @ts-ignore audited JavaScript module (no TypeScript declaration file)
   const {decodePortableBackup}=await import('./backup-codec.mjs');
   raw=await decodePortableBackup(envelope);
  }
