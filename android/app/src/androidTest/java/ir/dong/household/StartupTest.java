@@ -170,7 +170,7 @@ public class StartupTest {
   assertEquals("true",js("return window.migrationResult.nativeStress.every(x=>x.events===500&&x.totalCash===1225000)"));
   writeEvidence("migration-summary.json",js("return window.migrationResult").getBytes(java.nio.charset.StandardCharsets.UTF_8));
   // The mirrored SQLite ledger retains the reversal as a fourth row.
-  try(DangDatabase db=new DangDatabase(InstrumentationRegistry.getInstrumentation().getTargetContext());android.database.Cursor cursor=db.getReadableDatabase().rawQuery("SELECT count(*) FROM ledger_events",null)){
+  try(DongDatabase db=new DongDatabase(InstrumentationRegistry.getInstrumentation().getTargetContext());android.database.Cursor cursor=db.getReadableDatabase().rawQuery("SELECT count(*) FROM ledger_events",null)){
    assertTrue(cursor.moveToFirst());assertEquals(4,cursor.getInt(0));
   }
   // Verify the module-independent guard can report a fatal runtime error and retry safely.
