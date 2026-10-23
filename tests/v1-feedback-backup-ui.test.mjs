@@ -33,3 +33,19 @@ test('V1 branding and backup instructions cannot regress to 7.3.1',()=>{
  assert.match(settings,/انتخاب فایل برای بازیابی/);
  assert.doesNotMatch(settings,/خروجی JSON در گوشی/);
 });
+
+test('Dong is the customer-facing English brand, legacy technical identifiers stay unchanged',()=>{
+ const boot=readFileSync('public/boot-guard.js','utf8');
+ const native=readFileSync('src/native-bridge.ts','utf8');
+ const database=readFileSync('src/database.ts','utf8');
+ const strings=readFileSync('android/app/src/main/res/values/strings.xml','utf8');
+ assert.match(boot,/Dong V1\.0\.0 startup diagnostic/);
+ assert.match(boot,/dong-startup-diagnostic\.txt/);
+ assert.doesNotMatch(boot,/DANG 7\.3 startup diagnostic/);
+ assert.equal((native.match(/const filename=`dong-/g)||[]).length,2);
+ assert.match(database,/const filename=`dong-/);
+ assert.match(database,/a\.download=`dong-/);
+ assert.match(strings,/>دُنگ</);
+ assert.equal(config.applicationId,'ir.dang.household');
+ assert.match(database,/format:'dang-backup'/);
+});
