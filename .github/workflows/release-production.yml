@@ -1,10 +1,10 @@
-name: Publish owner-signed Dang update (never debug)
+name: Publish owner-signed Dong V1 update (never debug)
 on:
   workflow_dispatch:
 permissions:
   contents: read
 concurrency:
-  group: dang-owner-signed-release
+  group: dong-owner-signed-release
   cancel-in-progress: false
 jobs:
   release:
@@ -82,7 +82,7 @@ jobs:
           new=pathlib.Path('android/app/build/outputs/apk/release/app-release.apk')
           test=pathlib.Path('android/app/build/outputs/apk/androidTest/release/app-release-androidTest-signed.apk')
           results=[]
-          for p,code,package in [(old,14,'ir.dang.household'),(new,15,'ir.dang.household'),(test,None,'ir.dang.household.test')]:
+          for p,code,package in [(old,14,'ir.dang.household'),(new,16,'ir.dang.household'),(test,None,'ir.dang.household.test')]:
               signature=subprocess.check_output([str(root/'apksigner'),'verify','--print-certs',str(p)],text=True).lower()
               assert ('certificate sha-256 digest: '+expected) in signature, 'Refuse mismatch of original production certificate for '+str(p)
               info=subprocess.check_output([str(root/'aapt'),'dump','badging',str(p)],text=True)
@@ -116,7 +116,7 @@ jobs:
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: Dang-v7.3.2-OWNER-SIGNED-VERIFIED-UPGRADE
+          name: Dong-V1.0.0-OWNER-SIGNED-VERIFIED-UPGRADE
           retention-days: 14
           path: |
             android/app/build/outputs/apk/release/app-release.apk
