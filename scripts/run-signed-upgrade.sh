@@ -23,10 +23,12 @@ from pathlib import Path
 root=Path('upgrade-evidence');states=[json.loads((root/(n+'.json')).read_text()) for n in ['before','after','after-reopen']]
 assert states[0]==states[1]==states[2],'Financial state, SQLite ledger rows or private backup files changed during upgrade'
 package=[(root/(n+'.txt')).read_text() for n in ['package-before','package-after']]
-for label in ['userId','firstInstallTime']:
- values=[re.search(r'\b'+label+r'=([^\n]+)',p).group(1).strip() for p in package];assert values[0]==values[1],label+' changed'
+for label,pattern in [('appId',r'\b(?:appId|userId)=([^\n]+)'),('firstInstallTime',r'\bfirstInstallTime=([^\n]+)')]:
+ matches=[re.search(pattern,p) for p in package];assert all(matches),'Missing package metadata: '+label
+ values=[m.group(1).strip() for m in matches];assert values[0]==values[1],label+' changed'
 state=states[0]['state']['store'];digest=hashlib.sha256(json.dumps(states[0],sort_keys=True,separators=(',',':'),ensure_ascii=False).encode()).hexdigest()
 summary={'upgrade':'7.3.0 (13) -> 7.3.1 (14)','package':'ir.dang.household','sameProductionCertificate':True,'installMode':'adb install -r','sqliteAndPrivateBackupsPreserved':True,'events':len(state['events']),'plans':len(state['plans']),'closedPeriods':state['closedPeriods'],'stateSha256':digest}
 (root/'summary.json').write_text(json.dumps(summary,ensure_ascii=False,indent=2));print(json.dumps(summary,ensure_ascii=False))
 PY
+python3 scripts/capture-upgrade-ui.py || echo "Optional visual capture incomplete; see capture-status.json"
 adb logcat -d > upgrade-evidence/logcat.txt
