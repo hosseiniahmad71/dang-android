@@ -2,8 +2,15 @@
   "product": "Dong",
   "appNameFa": "دُنگ",
   "versionName": "1.0.0",
-  "versionCode": 1,
+  "versionCode": 16,
   "applicationId": "ir.dong.household",
-  "baseline": "fresh-install",
-  "signingPolicy": "new persistent Dong signing key; never use ephemeral CI validation key for future updates"
+  "certificateSha256": "cd7c8d5ba5089ccaba2b235dfd3beb84ed86d7da9d2bf93c2faa7b676a3af360",
+  "signingKeyAlias": "dong-release",
+  "releaseLine": "fresh-baseline",
+  "previousRelease": null,
+  "oldPackagesNotUpgradable": [
+    "ir.dang.household",
+    "ir.dang.household.preview71",
+    "ir.dang.household.preview72"
+  ]
 }
