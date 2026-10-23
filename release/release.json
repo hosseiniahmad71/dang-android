@@ -4,7 +4,7 @@
   "versionName": "1.0.0",
   "versionCode": 16,
   "applicationId": "ir.dong.household",
-  "certificateSha256": "cd7c8d5ba5089ccaba2b235dfd3beb84ed86d7da9d2bf93c2faa7b676a3af360",
+  "certificateSha256": "8f5ee72bc0e7586b8b6188e6817f4c616bad2df7546da7595291e7ea36911d93",
   "signingKeyAlias": "dong-release",
   "releaseLine": "fresh-baseline",
   "previousRelease": null,
