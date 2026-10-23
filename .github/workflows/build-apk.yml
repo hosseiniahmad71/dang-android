@@ -1,18 +1,10 @@
 name: Build Dang Android APK
 on:
   workflow_dispatch:
-    inputs:
-      build_release:
-        description: 'Build with the user-provided persistent signing key'
-        type: boolean
-        default: false
-      target_package:
-        description: 'preview71 requires the exact verified 7.1 signing key'
-        type: choice
-        options: ['ir.dang.household', 'ir.dang.household.preview71']
-        default: 'ir.dang.household'
+  pull_request:
+    branches: [main]
   push:
-    branches: [main, work/7.3-startup-integrity]
+    branches: [main, work/7.3.2-stable-release-backup-governance]
     paths-ignore: ["docs/**", "tests/upgrade-apks/**", ".github/workflows/verify-signed-upgrade.yml"]
 jobs:
   android:
@@ -44,6 +36,8 @@ jobs:
         run: npm ci --no-audit --no-fund
       - name: Run web type check and compile
         run: npm run build:android && node scripts/build-android-test.mjs
+      - name: Enforce fixed application identity and release governance
+        run: node --test tests/android-parallel-install.test.mjs
       - name: Verify finance runtime
         run: npm run test:native
       - name: Test Android system bars regression contract
@@ -71,7 +65,7 @@ jobs:
           python3 scripts/verify-apk.py android/app/build/outputs/apk/release/app-release.apk --aapt "$ANDROID_HOME/build-tools/35.0.0/aapt" --expected-package ir.dang.household | tee runtime-evidence/apk-metadata.json
       - uses: actions/upload-artifact@v4
         with:
-          name: Dang-v7.3.1-release-payload-CI-validation-only
+          name: Dang-v7.3.2-CI-VALIDATION-ONLY-DO-NOT-INSTALL
           path: |
             android/app/build/outputs/apk/release/app-release.apk
             android/app/build/outputs/apk/androidTest/release/app-release-androidTest.apk
@@ -99,45 +93,11 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: Dang-v7.3-runtime-evidence
+          name: Dang-v7.3.2-runtime-evidence
           path: |
             runtime-evidence/
             android/app/build/reports/androidTests/
             android/app/build/outputs/androidTest-results/
-      - name: Build persistent-key release only when explicitly selected
-        if: github.event_name == 'workflow_dispatch' && inputs.build_release
-        env:
-          DANG_KEYSTORE_BASE64: ${{ secrets.DANG_KEYSTORE_BASE64 }}
-          DANG_KEYSTORE_PASSWORD: ${{ secrets.DANG_KEYSTORE_PASSWORD }}
-          DANG_KEY_ALIAS: ${{ secrets.DANG_KEY_ALIAS }}
-          DANG_KEY_PASSWORD: ${{ secrets.DANG_KEY_PASSWORD }}
-          DANG_KEYSTORE_PATH: ${{ runner.temp }}/dang-release.jks
-          TARGET_PACKAGE: ${{ inputs.target_package }}
-        run: |
-          set -euo pipefail
-          test -n "$DANG_KEYSTORE_BASE64" && test -n "$DANG_KEYSTORE_PASSWORD" && test -n "$DANG_KEY_ALIAS" && test -n "$DANG_KEY_PASSWORD" || { echo 'Persistent signing credentials must be supplied by the user in GitHub Secrets.'; exit 1; }
-          trap 'rm -f "$DANG_KEYSTORE_PATH"' EXIT
-          printf '%s' "$DANG_KEYSTORE_BASE64" | base64 --decode > "$DANG_KEYSTORE_PATH"
-          chmod 600 "$DANG_KEYSTORE_PATH"
-          cd android
-          gradle --no-daemon assembleRelease -PdangApplicationId="$TARGET_PACKAGE"
-          APK=app/build/outputs/apk/release/app-release.apk
-          SIGNER="$ANDROID_HOME/build-tools/35.0.0/apksigner"
-          "$SIGNER" verify --verbose --print-certs "$APK" | tee release-signature.txt
-          if [ "$TARGET_PACKAGE" = ir.dang.household.preview71 ]; then
-            grep -q 'certificate SHA-256 digest: 21c3f5d6bd2507b8c96d8d35a3f1afa8c8c24171afe85b8bbe2d0b771643f005' release-signature.txt || { echo 'Refusing incompatible 7.1 upgrade'; rm -f "$APK"; exit 1; }
-          elif [ "$TARGET_PACKAGE" = ir.dang.household ]; then
-            grep -q 'certificate SHA-256 digest: 2b468a624312d5db6028984714f8c9663f6873c87c9a950c5fe0fc6787416108' release-signature.txt || { echo 'Refusing a production signing-key change'; rm -f "$APK"; exit 1; }
-          fi
-      - uses: actions/upload-artifact@v4
-        if: success() && github.event_name == 'workflow_dispatch' && inputs.build_release
-        with:
-          name: Dang-v7.3-persistent-key-release
-          path: |
-            android/app/build/outputs/apk/release/app-release.apk
-            android/release-signature.txt
-          if-no-files-found: error
-
       - name: Remove disposable CI key
         if: always()
         run: rm -f "$RUNNER_TEMP/dang-validation.jks"
