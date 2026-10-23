@@ -34,11 +34,11 @@ export async function decodeAndroidBackup(x,secret){
  */
 export async function encodePortableBackup(store){
  if(!store||typeof store!=='object'||Array.isArray(store))throw Error('اطلاعات پشتیبان نامعتبر است.');
- return {format:'dang-portable-backup',version:1,schema:3,exportedAt:new Date().toISOString(),store,storeSha256:await storeDigest(store)};
+ return {format:'dong-portable-backup',version:1,schema:3,exportedAt:new Date().toISOString(),store,storeSha256:await storeDigest(store)};
 }
 export async function decodePortableBackup(envelope){
  if(!envelope||typeof envelope!=='object'||Array.isArray(envelope)
-  ||envelope.format!=='dang-portable-backup'||envelope.version!==1||envelope.schema!==3
+  ||!['dong-portable-backup','dang-portable-backup'].includes(envelope.format)||envelope.version!==1||envelope.schema!==3
   ||typeof envelope.exportedAt!=='string'||!Number.isFinite(Date.parse(envelope.exportedAt))
   ||!envelope.store||typeof envelope.store!=='object'||Array.isArray(envelope.store)
   ||typeof envelope.storeSha256!=='string'||!/^[a-f0-9]{64}$/.test(envelope.storeSha256))
