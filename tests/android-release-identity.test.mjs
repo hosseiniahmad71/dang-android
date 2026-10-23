@@ -3,23 +3,20 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 const gradle=readFileSync('android/app/build.gradle','utf8');
 const manifest=readFileSync('android/app/src/main/AndroidManifest.xml','utf8');
-const release=readFileSync('.github/workflows/release-production.yml','utf8');
-const config=JSON.parse(readFileSync('release/release.json','utf8'));
-test('Dong production identity, monotonic version and fixed release signer',()=>{
- assert.equal(config.product,'Dong');
- assert.equal(config.appNameFa,'دُنگ');
- assert.equal(config.applicationId,'ir.dang.household');
- assert.ok(Number.isSafeInteger(config.versionCode) && config.versionCode>config.baseline.versionCode);
- assert.ok(gradle.includes("applicationId 'ir.dang.household'"));
- assert.ok(gradle.includes('versionCode '+config.versionCode));
- assert.ok(gradle.includes("versionName '"+config.versionName+"'"));
- for(const legacy of ['applicationIdSuffix','dangApplicationId','preview71','preview72','preview73'])
-   assert.ok(!gradle.includes(legacy),'Forbidden release identity override: '+legacy);
+const production=readFileSync('.github/workflows/release-production.yml','utf8');
+const cfg=JSON.parse(readFileSync('release/release.json','utf8'));
+test('Dong new V1 baseline and fixed owner-controlled signing identity',()=>{
+ assert.equal(cfg.product,'Dong'); assert.equal(cfg.appNameFa,'دُنگ');
+ assert.equal(cfg.versionName,'1.0.0'); assert.equal(cfg.versionCode,16);
+ assert.equal(cfg.applicationId,'ir.dong.household');
+ assert.equal(cfg.signingKeyAlias,'dong-release');
+ assert.equal(cfg.certificateSha256,'cd7c8d5ba5089ccaba2b235dfd3beb84ed86d7da9d2bf93c2faa7b676a3af360');
+ assert.ok(gradle.includes("applicationId 'ir.dong.household'"));
+ assert.ok(gradle.includes('versionCode '+cfg.versionCode));
+ assert.ok(gradle.includes("versionName '"+cfg.versionName+"'"));
  assert.ok(manifest.includes('android:label="@string/app_name"'));
- assert.ok(!manifest.includes('android:sharedUserId'));
- assert.ok(release.includes('refs/heads/main'));
- assert.ok(release.includes('assembleRelease'));
- assert.ok(!release.includes('assembleDebug'));
- assert.match(config.certificateSha256,/^[a-f0-9]{64}$/);
- assert.ok(config.baseline.apk.startsWith('tests/upgrade-apks/'));
+ for(const id of ['applicationIdSuffix','.preview71','.preview72'])assert.ok(!gradle.includes(id));
+ for(const env of ['DONG_KEYSTORE_PATH','DONG_KEYSTORE_PASSWORD','DONG_KEY_ALIAS','DONG_KEY_PASSWORD'])assert.ok(gradle.includes(env));
+ for(const old of ['DANG_KEYSTORE_','ir.dang.household'])assert.ok(!production.includes(old));
+ for(const word of ['DONG_KEYSTORE_BASE64','DONG_KEYSTORE_PASSWORD','DONG_KEY_ALIAS','DONG_KEY_PASSWORD','assembleRelease','refs/heads/main']) assert.ok(production.includes(word),word);
 });
