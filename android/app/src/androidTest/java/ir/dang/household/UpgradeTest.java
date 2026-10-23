@@ -14,7 +14,7 @@ import java.nio.file.Files;
 import java.security.MessageDigest;
 import static org.junit.Assert.*;
 
-/** Explicitly invoked only by the signed, non-destructive 7.3 -> 7.3.1 upgrade job. */
+/** Signed, non-destructive upgrade regression test; version expectations passed by instrumentation args. */
 @RunWith(AndroidJUnit4.class)
 public class UpgradeTest {
  private Context ctx(){return InstrumentationRegistry.getInstrumentation().getTargetContext();}
@@ -33,7 +33,7 @@ public class UpgradeTest {
   return new JSONObject().put("state",state).put("tables",counts).put("backupFiles",files);
  }
  @Test public void seedOriginal()throws Exception{
-  assertEquals(13,ctx().getPackageManager().getPackageInfo(ctx().getPackageName(),0).getLongVersionCode());
+  assertEquals(Long.parseLong(InstrumentationRegistry.getArguments().getString("baseVersion","14")),ctx().getPackageManager().getPackageInfo(ctx().getPackageName(),0).getLongVersionCode());
   JSONObject fixture;
   try(java.io.InputStream in=InstrumentationRegistry.getInstrumentation().getContext().getAssets().open("upgrade-store.json")){fixture=new JSONObject(new String(in.readAllBytes(),java.nio.charset.StandardCharsets.UTF_8));}
   try(DangDatabase db=new DangDatabase(ctx())){
@@ -43,7 +43,7 @@ public class UpgradeTest {
   }
  }
  @Test public void verifyAfterUpdate()throws Exception{
-  assertEquals(14,ctx().getPackageManager().getPackageInfo(ctx().getPackageName(),0).getLongVersionCode());
+  assertEquals(Long.parseLong(InstrumentationRegistry.getArguments().getString("updateVersion","15")),ctx().getPackageManager().getPackageInfo(ctx().getPackageName(),0).getLongVersionCode());
   try(DangDatabase db=new DangDatabase(ctx())){
    JSONObject s=db.get();assertNotNull("Existing SQLite state must survive install -r",s);JSONObject store=s.getJSONObject("store");
    assertEquals(2,store.getJSONArray("events").length());assertEquals(1,store.getJSONArray("plans").length());assertEquals("1405/07",store.getJSONArray("closedPeriods").getString(0));assertEquals(12000000,store.getJSONObject("contributionOverrides").getInt("1405/08|ahmad"));
