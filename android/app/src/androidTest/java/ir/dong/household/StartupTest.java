@@ -46,13 +46,13 @@ public class StartupTest {
  private int eventCount() throws Exception {return Integer.parseInt(js("return JSON.parse(DongNative.invoke(JSON.stringify({op:'get'}))).value.store.events.length"));}
  private void writeEvidence(String name,byte[] bytes) throws Exception {
   if(!name.matches("[a-zA-Z0-9._-]+"))throw new IllegalArgumentException("Invalid evidence name");
-  try(android.os.ParcelFileDescriptor mkdir=InstrumentationRegistry.getInstrumentation().getUiAutomation().executeShellCommand("mkdir -p /sdcard/Download/dang73")){
+  try(android.os.ParcelFileDescriptor mkdir=InstrumentationRegistry.getInstrumentation().getUiAutomation().executeShellCommand("mkdir -p /sdcard/Download/dong-v1")){
    new android.os.ParcelFileDescriptor.AutoCloseInputStream(mkdir).readAllBytes();
   }
-  android.os.ParcelFileDescriptor[] pipes=InstrumentationRegistry.getInstrumentation().getUiAutomation().executeShellCommandRw("dd of=/sdcard/Download/dang73/"+name);
+  android.os.ParcelFileDescriptor[] pipes=InstrumentationRegistry.getInstrumentation().getUiAutomation().executeShellCommandRw("dd of=/sdcard/Download/dong-v1/"+name);
   try(android.os.ParcelFileDescriptor.AutoCloseOutputStream out=new android.os.ParcelFileDescriptor.AutoCloseOutputStream(pipes[1])){out.write(bytes);}
   try(android.os.ParcelFileDescriptor.AutoCloseInputStream in=new android.os.ParcelFileDescriptor.AutoCloseInputStream(pipes[0])){in.readAllBytes();}
-  try(android.os.ParcelFileDescriptor check=InstrumentationRegistry.getInstrumentation().getUiAutomation().executeShellCommand("stat -c %s /sdcard/Download/dang73/"+name)){
+  try(android.os.ParcelFileDescriptor check=InstrumentationRegistry.getInstrumentation().getUiAutomation().executeShellCommand("stat -c %s /sdcard/Download/dong-v1/"+name)){
    String size=new String(new android.os.ParcelFileDescriptor.AutoCloseInputStream(check).readAllBytes(),java.nio.charset.StandardCharsets.UTF_8).trim();
    assertEquals("Evidence bytes must survive test APK uninstall",bytes.length,Long.parseLong(size));
   }
@@ -174,7 +174,7 @@ public class StartupTest {
    assertTrue(cursor.moveToFirst());assertEquals(4,cursor.getInt(0));
   }
   // Verify the module-independent guard can report a fatal runtime error and retry safely.
-  js("window.dangStartup.fail(new Error('instrumented startup failure'));return true");
+  js("window.dongStartup.fail(new Error('instrumented startup failure'));return true");
   until("!document.getElementById('startup-panel').hidden && !document.getElementById('startup-actions').hidden");screenshot("05-error-recovery");
   js("window.retryMarker=true;document.getElementById('startup-retry').click();return true");
   until("!window.retryMarker && document.querySelector('.app-shell') && document.getElementById('startup-panel').hidden");assertEquals(4,eventCount());
