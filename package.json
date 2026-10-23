@@ -1,6 +1,6 @@
 {
   "name": "dang-android-offline",
-  "version": "0.7.0-alpha",
+  "version": "7.3.0",
   "private": true,
   "type": "module",
   "scripts": {
