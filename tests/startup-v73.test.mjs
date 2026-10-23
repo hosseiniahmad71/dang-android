@@ -26,7 +26,7 @@ test('boot guard survives module-load errors, renders Persian recovery and does 
  listeners.error({error:Error('Cannot access calendar before initialization')});
  assert.equal(nodes['startup-panel'].hidden,false);assert.equal(nodes['startup-actions'].hidden,false);
  assert.match(nodes['startup-title'].textContent,/ناموفق/);assert.match(nodes['startup-details'].textContent,/calendar/);
- nodes['startup-save'].onclick();assert.equal(saved[1],'dang-startup-diagnostic.txt');
+ nodes['startup-save'].onclick();assert.equal(saved[1],'dong-startup-diagnostic.txt');
  nodes['startup-retry'].onclick();assert.equal(reloaded,1);
  window.dangStartup.ready();assert.equal(nodes['startup-panel'].hidden,true);
  listeners.unhandledrejection({reason:Error('SQLite unavailable')});assert.equal(nodes['startup-panel'].hidden,false);
