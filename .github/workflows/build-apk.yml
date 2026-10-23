@@ -123,6 +123,8 @@ jobs:
           "$SIGNER" verify --verbose --print-certs "$APK" | tee release-signature.txt
           if [ "$TARGET_PACKAGE" = ir.dang.household.preview71 ]; then
             grep -q 'certificate SHA-256 digest: 21c3f5d6bd2507b8c96d8d35a3f1afa8c8c24171afe85b8bbe2d0b771643f005' release-signature.txt || { echo 'Refusing incompatible 7.1 upgrade'; rm -f "$APK"; exit 1; }
+          elif [ "$TARGET_PACKAGE" = ir.dang.household ]; then
+            grep -q 'certificate SHA-256 digest: 2b468a624312d5db6028984714f8c9663f6873c87c9a950c5fe0fc6787416108' release-signature.txt || { echo 'Refusing a production signing-key change'; rm -f "$APK"; exit 1; }
           fi
       - uses: actions/upload-artifact@v4
         if: success() && github.event_name == 'workflow_dispatch' && inputs.build_release

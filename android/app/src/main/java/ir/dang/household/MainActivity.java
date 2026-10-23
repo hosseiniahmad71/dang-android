@@ -43,6 +43,9 @@ public final class MainActivity extends Activity {
 
     @Override public void onCreate(Bundle bundle){
         super.onCreate(bundle);
+        // API 35 system bars are transparent: supply a light post-splash backdrop.
+        getWindow().setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(Color.WHITE));
+        getWindow().getDecorView().setBackgroundColor(Color.WHITE);
         // Keep notification icons, clock, and battery visible on a solid status-bar background.
         getWindow().setStatusBarColor(Color.WHITE);
         getWindow().setNavigationBarColor(Color.rgb(247,248,252));

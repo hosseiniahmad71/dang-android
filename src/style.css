@@ -87,3 +87,7 @@ body{line-height:1.75}button,input,textarea{font:inherit}svg.lucide{stroke-width
 @media(max-width:360px){.topbar{padding-inline:12px}.topbar-location{gap:7px}.topbar-location>span{font-size:11px}.period-top{width:149px}.content{padding-inline:12px}.metric strong{font-size:20px}.welcome h1{font-size:22px}}
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
 .search-wrap input:focus-visible{outline:none;box-shadow:none}.search-wrap input{border:0;min-width:0}.select-items{max-height:min(280px,42dvh);overscroll-behavior:contain}.search-menu{overflow:hidden}.calendar{max-width:calc(100vw - 30px)}
+
+/* Preserve complete financial values in narrow metric cards. */
+.metric strong{white-space:nowrap;overflow-wrap:normal;overflow-x:auto;font-variant-numeric:tabular-nums}
+@media(max-width:670px){.metric strong{font-size:clamp(16px,4.8vw,22px)}}

@@ -73,6 +73,11 @@ public class StartupTest {
   Bitmap image=InstrumentationRegistry.getInstrumentation().getUiAutomation().takeScreenshot();
   assertNotNull("Android screenshot unavailable",image);
   java.io.ByteArrayOutputStream bytes=new java.io.ByteArrayOutputStream();image.compress(Bitmap.CompressFormat.PNG,100,bytes);
+  if(name.equals("01-dashboard")){
+   int backdrop=image.getPixel(4,4);
+   assertTrue("Light system-bar icons need a light backdrop",android.graphics.Color.red(backdrop)>220&&android.graphics.Color.green(backdrop)>220&&android.graphics.Color.blue(backdrop)>220);
+   assertEquals("true",js("return Array.from(document.querySelectorAll('.metric strong')).every(x=>x.getBoundingClientRect().height<=parseFloat(getComputedStyle(x).lineHeight)+1&&x.scrollWidth<=x.clientWidth+1)"));
+  }
   writeEvidence(name+".png",bytes.toByteArray());
  }
  private boolean accept(android.view.accessibility.AccessibilityNodeInfo node){
