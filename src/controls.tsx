@@ -1,7 +1,7 @@
 import {useEffect,useLayoutEffect,useId,useRef,useState} from 'react';
 import {createPortal} from 'react-dom';
 import {CalendarDays,ChevronDown,ChevronLeft,ChevronRight,Search,X} from 'lucide-react';
-import {MONTHS,MIN_FINANCIAL_PERIOD,MIN_FINANCIAL_DATE,currentIso,daysInJalaliMonth,digitsToEnglish,fnum,jalaliLabel,jalaliParts,offsetMonth,parseToman,toIsoFromJalali,tomanWords} from './utils';
+import {MONTHS,MIN_FINANCIAL_PERIOD,currentIso,daysInJalaliMonth,digitsToEnglish,fnum,jalaliLabel,jalaliParts,offsetMonth,parseToman,toIsoFromJalali,tomanWords} from './utils';
 export type Option={value:string,label:string};
 export function SearchSelect({label,value,onChange,options,placeholder='جست‌وجو و انتخاب...',disabled=false}:{label:string,value:string,onChange:(x:string)=>void,options:Option[],placeholder?:string,disabled?:boolean}){
  const [open,setOpen]=useState(false),[query,setQuery]=useState(''),[focusIndex,setFocusIndex]=useState(-1);
@@ -35,6 +35,7 @@ export function MoneyInput({label,value,onChange,placeholder='مثلاً ۲٬۵�
 export function PersianDate({label,value,onChange,minPeriod=MIN_FINANCIAL_PERIOD}:{label:string,value:string,onChange:(v:string)=>void,minPeriod?:string}){
  const [open,setOpen]=useState(false);const current=jalaliParts(value||currentIso());const [view,setView]=useState(()=>{const key=`${current.year}/${String(current.month).padStart(2,'0')}`;return key<minPeriod?minPeriod:key});
  const root=useRef<HTMLDivElement>(null);
+ useEffect(()=>setView(p=>p<minPeriod?minPeriod:p),[minPeriod]);
  useEffect(()=>{const close=(e:PointerEvent)=>{if(root.current&&!root.current.contains(e.target as Node))setOpen(false)};document.addEventListener('pointerdown',close);return()=>document.removeEventListener('pointerdown',close)},[]);
  const [startYear,startMonth]=minPeriod.split('/').map(Number),minDate=toIsoFromJalali(startYear,startMonth,1);
  const [y,m]=(view<minPeriod?minPeriod:view).split('/').map(Number),first=toIsoFromJalali(y,m,1),weekday=(new Date(`${first}T12:00:00Z`).getUTCDay()+1)%7,count=daysInJalaliMonth(y,m),today=currentIso(),canGoBack=offsetMonth(view,-1)>=minPeriod;
