@@ -115,3 +115,10 @@ export async function importPortableBackup(envelope:unknown,legacyPassword?:stri
  if(await storeDigest(saved)!==digest)throw Error('تطبیق داده پس از بازیابی ناموفق بود؛ داده را بررسی کنید.');
  return saved;
 }
+
+// Trip state has its own SQLite storage path and revision, isolated from household Store.
+export async function loadTravel(){return api<{revision:number,travel:unknown}>('/api/travel')}
+export async function saveTravel(travel:unknown,expectedRevision:number){return api<{revision:number,travel:unknown}>('/api/travel','PUT',{travel,expectedRevision})}
+export async function restoreTravel(travel:unknown,expectedRevision:number){return api<{revision:number,travel:unknown}>('/api/travel/restore','POST',{travel,expectedRevision})}
+export async function listTravelSnapshots(){return api<{items:{revision:number,createdAt:string}[]}>('/api/travel/backups')}
+export async function readTravelSnapshot(revision:number){return api<{travel:unknown}>(`/api/travel/backups/${revision}`)}
