@@ -39,7 +39,7 @@ jobs:
       - name: Read Dong release version
         id: meta
         run: |
-          echo "version=$(node -p \"require('./release/release.json').versionName\")" >> "$GITHUB_OUTPUT"
+          echo "version=$(node -p 'require("./release/release.json").versionName')" >> "$GITHUB_OUTPUT"
       - name: Load owner-managed persistent key, fail if absent
         env:
           DANG_KEYSTORE_BASE64: ${{ secrets.DANG_KEYSTORE_BASE64 }}
