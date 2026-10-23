@@ -167,4 +167,51 @@ public final class DongDatabase extends SQLiteOpenHelper {
             return new JSONObject().put("store",new JSONObject(c.getString(0)));
         }
     }
+
+    /** Completely separate SQLite tables for trips: never reuse household state or financial events. */
+    private static void ensureTravel(SQLiteDatabase db){
+        db.execSQL("CREATE TABLE IF NOT EXISTS travel_state (id INTEGER PRIMARY KEY CHECK(id=1), revision INTEGER NOT NULL, body TEXT NOT NULL, changed_at TEXT NOT NULL)");
+        db.execSQL("CREATE TABLE IF NOT EXISTS travel_backups (revision INTEGER PRIMARY KEY, created_at TEXT NOT NULL, body TEXT NOT NULL)");
+    }
+    public synchronized JSONObject getTravel() throws Exception {
+        SQLiteDatabase db=getWritableDatabase();ensureTravel(db);
+        try(Cursor c=db.rawQuery("SELECT revision,body FROM travel_state WHERE id=1",null)){
+            if(!c.moveToFirst())return new JSONObject().put("revision",0).put("travel",new JSONObject().put("version",1).put("trips",new JSONArray()));
+            return new JSONObject().put("revision",c.getInt(0)).put("travel",new JSONObject(c.getString(1)));
+        }
+    }
+    public synchronized JSONObject saveTravel(JSONObject travel,int expectedRevision) throws Exception {
+        if(travel.optInt("version",-1)!=1||!travel.has("trips")||!(travel.opt("trips") instanceof JSONArray))
+            throw new IllegalArgumentException("ساختار دنگ سفر نامعتبر است.");
+        final SQLiteDatabase db=getWritableDatabase();ensureTravel(db);db.beginTransaction();
+        try{
+            int revision=0;
+            try(Cursor c=db.rawQuery("SELECT revision FROM travel_state WHERE id=1",null)){
+                if(c.moveToFirst())revision=c.getInt(0);
+            }
+            if(revision!=expectedRevision)throw new IllegalStateException("داده سفر تغییر کرده است؛ دوباره بارگذاری کن.");
+            int nextRevision=revision+1;
+            ContentValues cv=new ContentValues();cv.put("id",1);cv.put("revision",nextRevision);cv.put("body",travel.toString());cv.put("changed_at",now());
+            db.insertWithOnConflict("travel_state",null,cv,SQLiteDatabase.CONFLICT_REPLACE);
+            ContentValues backup=new ContentValues();backup.put("revision",nextRevision);backup.put("created_at",now());backup.put("body",travel.toString());
+            db.insertOrThrow("travel_backups",null,backup);
+            db.execSQL("DELETE FROM travel_backups WHERE revision NOT IN (SELECT revision FROM travel_backups ORDER BY revision DESC LIMIT 60)");
+            db.setTransactionSuccessful();
+            return new JSONObject().put("revision",nextRevision).put("travel",travel);
+        }finally{db.endTransaction();}
+    }
+    public synchronized JSONArray listTravelBackups() throws Exception {
+        SQLiteDatabase db=getWritableDatabase();ensureTravel(db);JSONArray result=new JSONArray();
+        try(Cursor c=db.rawQuery("SELECT revision,created_at FROM travel_backups ORDER BY revision DESC LIMIT 60",null)){
+            while(c.moveToNext())result.put(new JSONObject().put("revision",c.getInt(0)).put("createdAt",c.getString(1)));
+        }
+        return result;
+    }
+    public synchronized JSONObject readTravelBackup(int revision) throws Exception {
+        SQLiteDatabase db=getWritableDatabase();ensureTravel(db);
+        try(Cursor c=db.rawQuery("SELECT body FROM travel_backups WHERE revision=?",new String[]{String.valueOf(revision)})){
+            if(!c.moveToFirst())throw new IllegalArgumentException("نسخه پشتیبان سفر پیدا نشد.");
+            return new JSONObject(c.getString(0));
+        }
+    }
 }

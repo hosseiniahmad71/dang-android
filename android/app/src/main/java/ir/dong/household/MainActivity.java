@@ -151,6 +151,10 @@ public final class MainActivity extends Activity {
                     case "get":database.periodic();result=database.get();break;
                     case "init":result=database.init(req.getJSONObject("store"));break;
                     case "commit":result=database.commit(req.getJSONObject("store"),req.getInt("expectedRevision"),req.optBoolean("restore"),req.optString("systemAction",""),req.optString("reason",""));break;
+                    case "travelGet":result=database.getTravel();break;
+                    case "travelSave":result=database.saveTravel(req.getJSONObject("travel"),req.getInt("expectedRevision"));break;
+                    case "travelBackups":result=database.listTravelBackups();break;
+                    case "travelReadBackup":result=database.readTravelBackup(req.getInt("revision"));break;
                     case "backup":result=database.backup(req.optString("reason","manual"));break;
                     case "list":result=database.list();break;
                     case "read":result=database.read(req.getString("id"));break;
