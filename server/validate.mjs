@@ -14,7 +14,7 @@ export function validateStore(raw){
  requireGood(raw.members.length<=250&&raw.accounts.length<=500&&raw.categories.length<=1000&&raw.plans.length<=20000&&raw.events.length<=200000,'حداکثر اندازه اطلاعات مجاز نیست.');
  requireGood(obj(raw.contributionOverrides),'تنظیمات دنگ ماهانه نامعتبر است.');
  requireGood(nonnegative(raw.openingBalance)&&nonnegative(raw.defaultContribution),'مبلغ افتتاحیه یا دنگ پیش‌فرض نامعتبر است.');
- requireGood(month(raw.startPeriod),'ماه شروع نامعتبر است.');
+ requireGood(month(raw.startPeriod)&&raw.startPeriod>='1405/07','ماه شروع باید مهر ۱۴۰۵ یا بعد از آن باشد.');
  requireGood(['change','hourly','daily','off'].includes(raw.backupPolicy),'تنظیم بک‌آپ نامعتبر است.');
  requireGood(typeof raw.googleClientId==='string'&&raw.googleClientId.length<=300,'شناسه گوگل نامعتبر است.');
  requireGood(raw.members.every(m=>obj(m)&&id(m.id)&&name(m.name)&&typeof m.contributes==='boolean')&&uniq(raw.members.map(m=>m.id)),'اعضای خانواده نامعتبر یا تکراری‌اند.');

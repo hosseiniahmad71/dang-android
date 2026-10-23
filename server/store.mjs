@@ -6,6 +6,7 @@ import { randomUUID, createHash, randomBytes, scryptSync, createCipheriv, create
 import { validateStore } from './validate.mjs';
 import {project, eventMonths, persianMonth, effectiveEvents, monthStart} from './ledger.mjs';
 import {writeExternalSnapshot,readExternalStore} from './external.mjs';
+import {assertStartPeriodChange} from '../src/start-period.mjs';
 
 const initial = {
  version:3,providers:['اسنپ‌پی','تارا','دیجی‌پی','سایر'],backupPolicy:'change',googleClientId:'',
@@ -50,6 +51,7 @@ export class DangStore {
   const next=validateStore(raw);this.verifyLedger(next);const current=this.get();
   if(current.revision!==expectedRevision)throw new ConflictError();
   if(!restore){
+   assertStartPeriodChange(current.store,next.startPeriod);
    if(JSON.stringify(next.closedPeriods??[])!==JSON.stringify(current.store.closedPeriods??[])&&!['lock','unlock'].includes(systemAction))throw Error('قفل ماه فقط از مسیر اختصاصی قفل/بازگشایی قابل تغییر است.');
    if(current.store.events.length&&next.openingBalance!==current.store.openingBalance)throw Error('موجودی افتتاحیه بعد از ثبت تراکنش قابل بازنویسی نیست.');
    const touched=new Set(current.store.events.flatMap(eventMonths));
