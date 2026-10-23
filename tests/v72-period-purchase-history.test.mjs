@@ -67,7 +67,7 @@ test('Native financial engine rejects pre-Mehr purchases but accepts Mehr',()=>{
  assert.equal(persianMonth(first),'1405/07');
  assert.equal(persianMonth(before),'1405/06');
  const s=base();
- assert.throws(()=>validateTransition(s,{...s,events:[purchase(before)]}),/مهر ۱۴۰۵/);
+ assert.throws(()=>validateTransition(s,{...s,events:[purchase(before)]}),/شروع انتخابی/);
  const valid=validateTransition(s,{...s,events:[purchase(first)]});
  assert.equal(project(valid).fund,19_000_000);
 });
