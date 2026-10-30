@@ -43,3 +43,8 @@
 .dong-dialog-actions .btn{min-width:115px;justify-content:center}
 .dong-dialog-error{color:#ab4d43!important;font-weight:750}
 @media(max-width:430px){.dong-dialog{padding:18px;border-radius:17px}.dong-dialog-actions .btn{flex:1}}
+
+/* Money values must remain whole at 320–430 CSS px; don't break "تومان" onto a second line. */
+.audit-figure strong{white-space:nowrap;word-break:normal;overflow-wrap:normal;font-variant-numeric:tabular-nums;letter-spacing:-.22px}
+@media(max-width:520px){.audit-figure strong{font-size:clamp(10px,3.15vw,14px);white-space:nowrap;word-break:normal;overflow-wrap:normal}}
+@media(max-width:355px){.audit-figures,.audit-detail-card .audit-figures{grid-template-columns:1fr}.audit-figure strong{font-size:16px}}
