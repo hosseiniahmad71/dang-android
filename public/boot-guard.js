@@ -3,7 +3,7 @@
   'use strict';
   var ready = false, lastReport = '', timer;
   function report(error) {
-    return 'Dong V1.0.3 startup diagnostic\n' + new Date().toISOString() + '\n' +
+    return 'Dong V1.0.4 startup diagnostic\n' + new Date().toISOString() + '\n' +
       navigator.userAgent + '\n' + String(error && (error.stack || error.message) || error);
   }
   function fail(error) {
