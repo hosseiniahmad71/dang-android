@@ -85,7 +85,7 @@ public class StartupTest {
       (flags & android.view.View.SYSTEM_UI_FLAG_FULLSCREEN)==0);
    });
    assertTrue("Native status bar must be white with dark icons",statusBarReady.get());
-   assertEquals("true",js("return Array.from(document.querySelectorAll('.audit-summary-pair .audit-figure strong')).length>=3&&Array.from(document.querySelectorAll('.audit-summary-pair .audit-figure strong')).every(x=>x.getBoundingClientRect().height<=parseFloat(getComputedStyle(x).lineHeight)+1&&x.scrollWidth<=x.clientWidth+1)"));
+   assertEquals("true",js("return document.querySelectorAll('.metric-grid .metric-button strong').length===4&&document.documentElement.scrollWidth<=innerWidth+1"));
   }
   writeEvidence(name+".png",bytes.toByteArray());
  }
@@ -162,18 +162,28 @@ public class StartupTest {
   scenario.getScenario().recreate();
   until("document.querySelector('.app-shell') && document.getElementById('startup-panel').hidden");
   screenshot("01-dashboard");
-  assertEquals("true",js("return !!document.querySelector('.audit-summary-pair') && document.documentElement.scrollWidth<=innerWidth+1"));
-  js("document.querySelector('.audit-summary-card .audit-open').click();return true");
+  // Same compact layout as 1.0.4; tap a tile to inspect details on its dedicated page.
+  assertEquals("true",js("return document.querySelectorAll('.metric-grid .metric-button').length===4 && document.documentElement.scrollWidth<=innerWidth+1"));
+  js("document.querySelectorAll('.metric-grid .metric-button')[1].click();return true");
   until("document.querySelector('.audit-member-link')");
   js("document.querySelector('.audit-member-link').click();return true");
   until("document.querySelector('.audit-view h2') && document.querySelector('.audit-view h2').textContent.includes('صورت‌حساب')");
   js("document.querySelector('.audit-back').click();return true");
-  until("document.querySelector('.audit-summary-pair')");
-  js("document.querySelectorAll('.audit-summary-card .audit-open')[1].click();return true");
+  until("document.querySelector('.metric-grid')");
+  js("document.querySelectorAll('.metric-grid .metric-button')[0].click();return true");
   until("document.querySelector('.audit-formula')");
   assertEquals("true",js("return document.querySelector('.audit-view').textContent.includes('موجودی حساب اصلی') && document.documentElement.scrollWidth<=innerWidth+1"));
   js("document.querySelector('.audit-back').click();return true");
-  until("document.querySelector('.audit-summary-pair')");
+  until("document.querySelector('.metric-grid')");
+  js("document.querySelectorAll('.metric-grid .metric-button')[3].click();return true");
+  until("document.querySelector('.audit-view h2') && document.querySelector('.audit-view').textContent.includes('هزینه‌های ثبت‌شده')");
+  js("document.querySelector('.audit-back').click();return true");
+  until("document.querySelector('.metric-grid')");
+  tap(".mobile-nav button","تنظیمات");
+  until("document.querySelector('.settings-stack')");
+  assertEquals("true",js("return document.querySelector('.page-heading .count-badge').textContent.includes('V1.0.6')"));
+  tap(".mobile-nav button","داشبورد");
+  until("document.querySelector('.metric-grid')");
   js("window.selectorWidth=innerWidth;document.querySelector('.period-top .select-trigger').click();return true");
   until("document.querySelector('.search-dialog[open]')");
   assertEquals("false",js("return document.activeElement.tagName==='INPUT'"));
