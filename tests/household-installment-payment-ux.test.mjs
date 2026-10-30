@@ -41,6 +41,23 @@ test('member-paid installment credits real payer, not credit owner; no fund doub
  assert.equal(p.totalCash,5000);
  assert.equal(p.active.length,1);
 });
+test('cash held on an accountable family card is a fund payment, not personal dues credit',()=>{
+ const s=fixture();
+ s.accounts.push({id:'card-a',name:'کارت الف',kind:'personal',ownerId:'a'});
+ s.events.push({id:'deposit1',kind:'deposit',date:'2026-10-29',amount:2000,memberId:'a',accountId:'card-a',destinationId:'card-a',period,description:''});
+ const choices=paymentSourceOptions(s).map(x=>x.value);
+ assert.ok(choices.includes('custody:card-a'));
+ const e=payment(s,'custody:card-a',501,'custody-payment');
+ s.events.push(e);
+ validateStore(s);
+ const outcome=project(s);
+ assert.equal(e.accountId,'card-a');
+ assert.equal(e.fundedBy,'fund');
+ assert.equal(outcome.custody['card-a'],1499);
+ assert.equal(outcome.credits[period+'|a'],2000);
+ assert.equal(outcome.totalCash,6499);
+ assert.throws(()=>resolvePaymentSource(s,'custody:nonexistent'));
+});
 test('mixed partial payments from a member and fund settle exactly and conserve cash',()=>{
  const s=fixture();
  s.events=[payment(s,'member:a',501,'pay1'),payment(s,'fund',500,'pay2')];
