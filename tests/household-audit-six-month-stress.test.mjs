@@ -7,7 +7,7 @@ import {project} from '../src/native-ledger.mjs';
 const dates=['2026-10-27','2026-11-25','2026-12-25','2027-01-25','2027-02-25','2027-03-25'];
 function makeStore(total){
  const members=[{id:'a',name:'احمد',contributes:true},{id:'b',name:'فاطمه',contributes:true}];
- const s={version:3,providers:[],backupPolicy:'off',googleClientId:'',archivedMembers:[],archivedAccounts:[],archivedCategories:[],archivedProviders:[],members,accounts:[{id:'fund',name:'صندوق',kind:'fund'},{id:'card',name:'کارت فاطمه',kind:'personal',ownerId:'b'}],categories:['سوپرمارکت'],plans:[],events:[],openingBalance:1_000_000_000,defaultContribution:10_000_000,contributionOverrides:{},startPeriod:'1405/07',closedPeriods:[]};
+ const s={version:3,providers:[],backupPolicy:'off',googleClientId:'',archivedMembers:[],archivedAccounts:[],archivedCategories:[],archivedProviders:[],members,accounts:[{id:'fund',name:'صندوق',kind:'fund'},{id:'card',name:'کارت امانی',kind:'personal',ownerId:'b'},{id:'personal-card',name:'کارت شخصی فاطمه',kind:'personal',ownerId:'b'}],categories:['سوپرمارکت'],plans:[],events:[],openingBalance:1_000_000_000,defaultContribution:10_000_000,contributionOverrides:{},startPeriod:'1405/07',closedPeriods:[]};
  const independent={fund:s.openingBalance,custody:0,personalCredit:0};
  const eventDates=new Set();
  for(let i=0;i<total;i++){
@@ -17,12 +17,12 @@ function makeStore(total){
   else if(seq===1){s.events.push({id,kind:'deposit',date,amount:200,memberId:'b',accountId:'card',destinationId:'card',period,description:'واریز به کارت فاطمه'});independent.custody+=200}
   else if(seq===2){s.events.push({id,kind:'transfer',date,amount:150,accountId:'fund',destinationId:'card',description:'انتقال صندوق'});independent.fund-=150;independent.custody+=150}
   else if(seq===3){s.events.push({id,kind:'purchase',date,amount:80,accountId:'fund',paidById:'',category:'سوپرمارکت',creditPeriod:period,fundedBy:'fund',description:'خرید از صندوق'});independent.fund-=80}
-  else if(seq===4){s.events.push({id,kind:'purchase',date,amount:120,accountId:'card',paidById:'b',category:'سوپرمارکت',creditPeriod:period,fundedBy:'personal',description:'خرید از پول شخصی'});independent.personalCredit+=120}
+  else if(seq===4){s.events.push({id,kind:'purchase',date,amount:120,accountId:'personal-card',paidById:'b',category:'سوپرمارکت',creditPeriod:period,fundedBy:'personal',description:'خرید از پول شخصی'});independent.personalCredit+=120}
   else if(seq===5){s.events.push({id,kind:'purchase',date,amount:50,accountId:'card',paidById:'',category:'سوپرمارکت',creditPeriod:period,fundedBy:'fund',description:'خرید از پول صندوق نزد کارت'});independent.custody-=50}
   else if(seq===6){s.events.push({id,kind:'transfer',date,amount:75,accountId:'card',destinationId:'fund',description:'برگشت وجه از کارت'});independent.custody-=75;independent.fund+=75}
   else if(seq===7){s.events.push({id,kind:'purchase',date,amount:90,accountId:'fund',paidById:'',category:'سوپرمارکت',creditPeriod:period,fundedBy:'fund',description:'خرید نقدی'});independent.fund-=90}
   else if(seq===8){s.events.push({id,kind:'deposit',date,amount:300,memberId:'a',accountId:'fund',destinationId:'fund',period,description:'واریز صندوق'});independent.fund+=300}
-  else {s.events.push({id,kind:'purchase',date,amount:220,accountId:'card',paidById:'b',category:'سوپرمارکت',creditPeriod:period,fundedBy:'personal',description:'خرید شخصی'});independent.personalCredit+=220}
+  else {s.events.push({id,kind:'purchase',date,amount:220,accountId:'personal-card',paidById:'b',category:'سوپرمارکت',creditPeriod:period,fundedBy:'personal',description:'خرید شخصی'});independent.personalCredit+=220}
  }
  return {s,independent,periods:[...eventDates]};
 }
