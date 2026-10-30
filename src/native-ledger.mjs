@@ -33,7 +33,9 @@ export function project(store){
  for(const e of evs){
   const key=(m,p)=>`${p}|${m}`;
   if(['purchase','payment'].includes(e.kind)&&e.accountId!=='fund'){
-   const reserved=get(custody,e.accountId);
+   const memberCash=e.kind==='payment'&&e.accountId==='__dong_member_cash__';
+   if(memberCash&&(e.fundedBy!=='personal'||!store.members.some(m=>m.id===e.paidById)))throw Error('منبع نقدی عضو پرداخت‌کننده معتبر نیست.');
+   const reserved=memberCash?0:get(custody,e.accountId);
    const funding=e.fundedBy||(reserved>=e.amount?'fund':'personal'); // legacy read compatibility only
    if(funding==='fund'){
     if(reserved<e.amount)throw Error('خرید از پول صندوقِ منتقل‌شده بیش از مانده امانی کارت است.');
@@ -41,7 +43,7 @@ export function project(store){
    }else{
     if(reserved!==0)throw Error('پول صندوق و شخصی در کارت مخلوط است. ابتدا وجه امانی را تعیین تکلیف کنید.');
     const acct=store.accounts.find(a=>a.id===e.accountId);
-    if(!acct||acct.kind!=='personal'||acct.ownerId!==e.paidById)throw Error('اعتبار دنگ فقط از کارت شخصی با مالک همان عضو مجاز است.');
+    if(!memberCash&&(!acct||acct.kind!=='personal'||acct.ownerId!==e.paidById))throw Error('اعتبار دنگ فقط از کارت شخصی با مالک همان عضو مجاز است.');
     add(credits,key(e.paidById,e.creditPeriod),e.amount);
    }
   }
