@@ -61,6 +61,34 @@ for(const spec of [{label:'۵۰۰ تراکنش در هر ماه × ۶ ماه',co
   console.log(JSON.stringify({scenario:spec.label,transactions:spec.count,months:periods.length,audit_ms:elapsed,mainFund:detail.mainFund,custody:detail.custodyTotal,totalCash:detail.totalCash}));
  });
 }
+test('provenance: four million at Fatemeh card can originate from dues deposit without a transfer event',()=>{
+ const {s}=makeStore(0);
+ s.openingBalance=0;
+ s.events=[{id:'fatemeh-receipt',kind:'deposit',date:'2026-10-27',amount:4_000_000,memberId:'b',accountId:'card',destinationId:'card',period:'1405/08',description:'پرداخت دنگ به کارت فاطمه'}];
+ const a=cashAudit(s,'1405/08');
+ assert.equal(a.mainFund,0);
+ assert.equal(a.custodyBalances.card,4_000_000);
+ assert.equal(a.totalCash,4_000_000);
+ assert.equal(a.records.length,1);
+ assert.equal(a.records[0].id,'fatemeh-receipt');
+ assert.equal(a.records[0].kind,'deposit');
+ const dues=memberAudit(s,'b','1405/08');
+ assert.equal(dues.current.find(e=>e.id==='fatemeh-receipt').effect,4_000_000);
+});
+test('legacy purchases from family money held in a card never create member personal credit',()=>{
+ const {s}=makeStore(0);
+ s.openingBalance=0;
+ s.events=[
+  {id:'custody',kind:'deposit',date:'2026-10-27',amount:600_000,memberId:'b',accountId:'card',destinationId:'card',period:'1405/08',description:''},
+  {id:'legacy',kind:'purchase',date:'2026-10-28',amount:200_000,accountId:'card',paidById:'b',category:'سوپرمارکت',creditPeriod:'1405/08',description:''}
+ ];
+ const result=cashAudit(s,'1405/08');
+ assert.equal(result.custodyTotal,400_000);
+ assert.equal(result.mainFund,0);
+ const receipt=memberAudit(s,'b','1405/08').current.find(x=>x.id==='legacy');
+ assert.equal(receipt.effect,0);
+ assert.match(receipt.label,/از پول صندوق/);
+});
 test('reversals leave original immutable but zero audit impact and preserve historical explanation',()=>{
  const {s}=makeStore(100);
  const chosen=s.events.find(x=>x.kind==='purchase'&&x.fundedBy==='personal');
