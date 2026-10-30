@@ -17,8 +17,10 @@ test('finance history has all requested color-coded operation categories',()=>{
  assert.match(main,/record-kind-\$\{cancelled\?'reversal':event.kind\}/);
  for(const color of ['deposit','purchase','reversal','payment','waiver','creditMove','transfer','refund','obligationAdjust'])assert.match(css,new RegExp('record-kind-'+color+'\\b'));
 });
-test('forms pay from Maryam fund custody without treating household money as a member personal credit',()=>{
+test('historical custody purchases remain distinct from member-funded installment payments',()=>{
  assert.match(main,/custodyBalances\(store\)\['maryam-card'\]/);
- assert.match(main,/fromCustody\?'fund':'personal'/);
+ assert.match(main,/isFunded\?'fund':'personal'/);
+ assert.match(main,/paymentSourceOptions\(store\)/);
+ assert.match(main,/resolvePaymentSource\(store,source\)/);
  assert.match(main,/حساب پرداخت‌کننده بازپرداخت/);
 });
