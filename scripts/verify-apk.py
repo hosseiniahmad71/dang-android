@@ -25,7 +25,7 @@ with zipfile.ZipFile(a.apk) as z:
         data=z.read('assets/web/'+name);assert data, 'Empty asset: '+name
         checked.append({'asset':name,'bytes':len(data)})
     assert 'boot-guard.js' in [x['asset'] for x in checked], 'Missing independent recovery script'
-    assert b'dangStartup' in z.read('assets/web/boot-guard.js')
+    assert b'dongStartup' in z.read('assets/web/boot-guard.js')
     assert not any(n.startswith('assets/') and 'migration-test' in n for n in z.namelist()), 'Test harness leaked into app APK'
 result={'apk':a.apk,'sha256':hashlib.sha256(open(a.apk,'rb').read()).hexdigest(),'assets':checked}
 if a.aapt:
