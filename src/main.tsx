@@ -187,7 +187,7 @@ function PaymentForm({store,save,initialInstallmentId=''}:{store:Store,save:(e:E
     <PersianDate minPeriod={store.startPeriod} label="تاریخ واقعی پرداخت" value={date} onChange={setDate}/>
     <SearchSelect label="چه کسی واقعاً پرداخت کرد؟" value={source} onChange={setSource} options={sourceOptions}/>
    </div>
-   <Notice>{!source?'پرداخت‌کننده واقعی را انتخاب کنید.':source==='fund'?'این پرداخت از موجودی صندوق مشترک کسر می‌شود و به هیچ عضوی اعتبار دنگ نمی‌دهد.':'پرداخت از پول شخصی عضو به همان مبلغ در دنگ ماه پرداخت او منظور می‌شود؛ حتی اگر صاحب اعتبار خرید شخص دیگری باشد.'} هزینه قسط در ماه سررسید محاسبه شده است؛ این پرداخت دوباره به هزینه خانه اضافه نمی‌شود.</Notice>
+   <Notice>{!source?'پرداخت‌کننده واقعی را انتخاب کنید.':source==='fund'?'این پرداخت از موجودی اصلی صندوق کسر می‌شود و اعتبار شخصی ایجاد نمی‌کند.':source.startsWith('custody:')?'این پرداخت از پول صندوق نزد کارت انتخاب‌شده انجام می‌شود؛ فقط مانده وجه امانی کاهش می‌یابد و اعتبار شخصی ایجاد نمی‌کند.':'پرداخت از پول شخصی عضو به همان مبلغ در دنگ ماه پرداخت او منظور می‌شود؛ حتی اگر صاحب اعتبار خرید شخص دیگری باشد.'} هزینه قسط در ماه سررسید محاسبه شده است؛ این پرداخت دوباره به هزینه خانه اضافه نمی‌شود.</Notice>
    {error&&<div className="form-error" role="alert">{error}</div>}
    <div className="form-footer"><SaveButton>ثبت پرداخت قسط</SaveButton></div>
   </>}
