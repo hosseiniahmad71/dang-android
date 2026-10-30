@@ -89,8 +89,9 @@ test('UI contract: direct installments, member drilldown and backup success with
  assert.match(ui,/onPay\(r.id\)/);
  assert.match(ui,/initialInstallmentId=\{paymentSelection\}/);
  assert.match(ui,/چه کسی واقعاً پرداخت کرد/);
- assert.match(ui,/member-detail-card/);
- assert.match(ui,/aria-expanded=\{expandedMember===m.id\}/);
+ assert.match(ui,/AuditSummaryCards/);
+ assert.match(ui,/openAudit\("member",m.id\)/);
+ assert.match(ui,/AuditDetailView/);
  assert.doesNotMatch(settings,/status\('پشتیبان بدون رمز ذخیره شد: '\+x.location\)/);
  assert.match(settings,/نام فایل: '\+x.filename/);
  assert.match(css,/\.status-note,\.toast/);
