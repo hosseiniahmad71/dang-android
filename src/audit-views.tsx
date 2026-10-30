@@ -20,9 +20,13 @@ export function AuditSummaryCards({store,period,onSelect}:{store:Store,period:st
  const cash=useMemo(()=>cashAudit(store,period),[store,period]);
  const forgiven=stats.memberStats.reduce((n,m)=>n+m.forgiven,0);
  const budgetLeft=stats.remaining;
+ const personalIds=useMemo(()=>personalPaymentIds(store),[store]);
+ const active=useMemo(()=>effectiveEvents(store),[store]);
+ const cashDues=active.filter(e=>e.kind==='deposit'&&e.period===period).reduce((n,e)=>n+e.amount,0);
+ const ownSpendCredit=active.filter(e=>(e.kind==='purchase'||e.kind==='payment')&&e.creditPeriod===period&&personalIds.has(e.id)).reduce((n,e)=>n+e.amount,0);
  return <div className="audit-summary-pair" aria-label="خلاصه قابل بررسی حسابداری">
   <section className="audit-summary-card"><div className="audit-summary-head"><div className="audit-title"><Users size={22}/><h2>حساب دنگ اعضا</h2></div><span>{monthLabel(period)}</span></div>
-   <div className="audit-figures"><AuditFigure label="تعهد اعضا" value={stats.required}/><AuditFigure label="اعتبار پرداخت‌شده" value={stats.credit} description="واریز، خرید شخصی و انتقال اعتبار"/><AuditFigure label="بخشودگی ثبت‌شده" value={forgiven}/><AuditFigure label="باقی‌مانده وصول‌نشده" value={budgetLeft} emphasis/></div>
+   <div className="audit-figures"><AuditFigure label="تعهد اعضا" value={stats.required}/><AuditFigure label="دنگ واریزشده" value={cashDues} description="واریزهایی که به دنگ اعضا منظور شده‌اند"/><AuditFigure label="اعتبار خرید با پول شخصی" value={ownSpendCredit} description="خرید خانه و قسط از پول خود اعضا"/><AuditFigure label="جمع اعتبار خالص" value={stats.credit} description="پس از انتقال اعتبار و بازپرداخت"/><AuditFigure label="بخشودگی ثبت‌شده" value={forgiven}/><AuditFigure label="باقی‌مانده وصول‌نشده" value={budgetLeft} emphasis/></div>
    <p className="audit-equation">باقی‌مانده هر عضو = تعهد − اعتبار او − بخشودگی (حداقل صفر). مازاد اعتبار جداگانه نمایش داده می‌شود.</p>
    <button className="audit-open" type="button" onClick={()=>onSelect('dues')}>مشاهده محاسبات دنگ و اسناد اعضا <ChevronLeft size={17}/></button>
   </section>
