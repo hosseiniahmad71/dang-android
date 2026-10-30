@@ -92,7 +92,9 @@ test('Cash purchase automatically derives payer from the chosen card owner',()=>
 test('Cancellation needs warning only and remains on original history row',()=>{
  const block=main.slice(main.indexOf('function HistoryView('),main.indexOf('function OperationsView('));
  assert.match(block,/if\(event.kind==='reversal'\)return false/);
- assert.match(block,/if\(window.confirm\(message\)\)void onReverse\(event.id,'ابطال با تأیید مدیر'\)/);
+ assert.match(block,/role="dialog" aria-modal="true"/);
+ assert.match(block,/void onReverse\(pending.id,'ابطال با تأیید مدیر'\)/);
+ assert.doesNotMatch(block,/window\.confirm\(/);
  assert.doesNotMatch(block,/window.prompt\('دلیل ابطال/);
  assert.match(block,/cancelled-stamp/);
  assert.match(block,/const cancelled=reversalByOriginal.get\(event.id\)/);
