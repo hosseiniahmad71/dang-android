@@ -40,7 +40,23 @@ export function cashAudit(store,period){
   for(const [account,amount] of Object.entries(projected.custody))if((custodyBalances[account]||0)!==amount)throw Error('مغایرت نگهداری پول صندوق در کارت‌ها.');
   return result;
 }
+function personalPaymentEventIds(store){
+ const active=activeEvents(store.events).map((e,i)=>({e,i})).sort((a,b)=>a.e.date.localeCompare(b.e.date)||a.i-b.i).map(x=>x.e);
+ const custody=new Map(),personal=new Set(),get=id=>custody.get(id)||0,add=(id,v)=>custody.set(id,get(id)+v);
+ for(const e of active){
+  if(e.kind==='deposit'&&e.destinationId&&e.destinationId!=='fund'&&!e.creditOnly)add(e.destinationId,e.amount);
+  else if(e.kind==='transfer'){
+   if(e.accountId==='fund')add(e.destinationId,e.amount);
+   else{add(e.accountId,-e.amount);if(e.destinationId!=='fund')add(e.destinationId,e.amount)}
+  }else if((e.kind==='purchase'||e.kind==='payment')&&e.accountId!=='fund'){
+   const backed=e.fundedBy==='fund'||(e.fundedBy===undefined&&get(e.accountId)>=e.amount);
+   if(backed)add(e.accountId,-e.amount);else personal.add(e.id);
+  }else if(e.kind==='refund'&&e.accountId&&e.accountId!=='fund')add(e.accountId,-e.amount);
+ }
+ return personal;
+}
 export function memberAudit(store,id,period){
+ const personallyFunded=personalPaymentEventIds(store);
   const ownedAccounts=new Set(store.accounts.filter(a=>a.ownerId===id).map(a=>a.id));
   const cancelled=new Map(store.events.filter(e=>e.kind==='reversal').map(e=>[e.originalId,e]));
   const all=store.events.filter(e=>e.kind!=='reversal').map(e=>{
@@ -48,7 +64,7 @@ export function memberAudit(store,id,period){
     if(e.kind==='deposit'&&e.memberId===id){relevant=true;label='واریز دنگ';effect=e.amount;periodKey=e.period}
     if((e.kind==='purchase'||e.kind==='payment')&&(e.paidById===id||ownedAccounts.has(e.accountId))){
       relevant=true;periodKey=e.creditPeriod;
-      const personal=e.fundedBy==='personal'||(e.fundedBy===undefined&&e.paidById===id);
+      const personal=personallyFunded.has(e.id);
       label=e.kind==='purchase'?'خرید خانه':'پرداخت قسط';
       if(personal&&e.paidById===id)effect=e.amount;
       if(!personal)label+=' از پول صندوق نزد کارت';
