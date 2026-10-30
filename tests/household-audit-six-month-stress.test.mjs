@@ -105,7 +105,9 @@ test('reversals leave original immutable but zero audit impact and preserve hist
 test('dashboard routes, grouped cash and dues, and nontechnical Persian alerts are wired',()=>{
  const main=readFileSync('src/main.tsx','utf8');
  const views=readFileSync('src/audit-views.tsx','utf8');
- assert.match(main,/AuditSummaryCards store=\{store\}/);
+ assert.match(main,/className="metric-grid"/);
+ for(const type of ['cash','dues','expenses'])assert.match(main,new RegExp('openAudit\\("'+type+'"\\)'));
+ assert.doesNotMatch(main,/<AuditSummaryCards/);
  assert.match(main,/onClick=\{\(\)=>openAudit\("member",m.id\)\}/);
  assert.match(main,/page==='audit'\?<AuditDetailView/);
  assert.match(views,/موجودی حساب اصلی/);
