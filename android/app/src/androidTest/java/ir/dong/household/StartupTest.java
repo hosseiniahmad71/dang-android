@@ -85,7 +85,7 @@ public class StartupTest {
       (flags & android.view.View.SYSTEM_UI_FLAG_FULLSCREEN)==0);
    });
    assertTrue("Native status bar must be white with dark icons",statusBarReady.get());
-   assertEquals("true",js("return Array.from(document.querySelectorAll('.metric strong')).every(x=>x.getBoundingClientRect().height<=parseFloat(getComputedStyle(x).lineHeight)+1&&x.scrollWidth<=x.clientWidth+1)"));
+   assertEquals("true",js("return Array.from(document.querySelectorAll('.audit-summary-pair .audit-figure strong')).length>=3&&Array.from(document.querySelectorAll('.audit-summary-pair .audit-figure strong')).every(x=>x.getBoundingClientRect().height<=parseFloat(getComputedStyle(x).lineHeight)+1&&x.scrollWidth<=x.clientWidth+1)"));
   }
   writeEvidence(name+".png",bytes.toByteArray());
  }
@@ -119,6 +119,18 @@ public class StartupTest {
   scenario.getScenario().recreate();
   until("document.querySelector('.app-shell') && document.getElementById('startup-panel').hidden");
   screenshot("01-dashboard");
+  assertEquals("true",js("return !!document.querySelector('.audit-summary-pair') && document.documentElement.scrollWidth<=innerWidth+1"));
+  js("document.querySelector('.audit-summary-card .audit-open').click();return true");
+  until("document.querySelector('.audit-member-link')");
+  js("document.querySelector('.audit-member-link').click();return true");
+  until("document.querySelector('.audit-view h2') && document.querySelector('.audit-view h2').textContent.includes('صورت‌حساب')");
+  js("document.querySelector('.audit-back').click();return true");
+  until("document.querySelector('.audit-summary-pair')");
+  js("document.querySelectorAll('.audit-summary-card .audit-open')[1].click();return true");
+  until("document.querySelector('.audit-formula')");
+  assertEquals("true",js("return document.querySelector('.audit-view').textContent.includes('موجودی حساب اصلی') && document.documentElement.scrollWidth<=innerWidth+1"));
+  js("document.querySelector('.audit-back').click();return true");
+  until("document.querySelector('.audit-summary-pair')");
   js("window.selectorWidth=innerWidth;document.querySelector('.period-top .select-trigger').click();return true");
   until("document.querySelector('.search-dialog[open]')");
   assertEquals("false",js("return document.activeElement.tagName==='INPUT'"));
@@ -160,10 +172,10 @@ public class StartupTest {
   until("JSON.parse(DongNative.invoke(JSON.stringify({op:'get'}))).value.store.events.length===3");
   tap(".mobile-nav button","اقساط");screenshot("02-installments");
   tap(".mobile-nav button","تاریخچه");assertEquals("3",js("return document.querySelectorAll('.record').length"));
-  scenario.getScenario().onActivity(a->find(a.getWindow().getDecorView()).evaluateJavascript("document.querySelector('.record-kind-purchase button').click()",null));
-  boolean accepted=false;
-  for(int i=0;i<100&&!accepted;i++){accepted=accept(InstrumentationRegistry.getInstrumentation().getUiAutomation().getRootInActiveWindow());if(!accepted)Thread.sleep(100);}
-  assertTrue("Native Persian cancellation confirmation missing",accepted);
+  js("document.querySelector('.record-kind-purchase button').click();return true");
+  until("document.querySelector('.dong-dialog[role=dialog]')");
+  assertEquals("true",js("return document.querySelector('.dong-dialog h2').textContent.includes('تأیید ابطال سند')"));
+  js("var b=Array.from(document.querySelectorAll('.dong-dialog button')).find(x=>x.textContent.includes('ابطال سند'));if(!b)throw Error('Missing cancellation confirmation');b.click();return true");
   until("document.querySelector('.cancelled-stamp')");
   assertEquals("3",js("return document.querySelectorAll('.record').length"));assertEquals(4,eventCount());
   js("document.querySelector('.cancelled-stamp').scrollIntoView({block:'center'});return true");screenshot("03-history");
