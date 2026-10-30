@@ -68,9 +68,11 @@ uid=[extract((root/x).read_text(),r'uid:(\d+)') for x in ['uid-before.txt','uid-
 code=[extract(p,r'\bversionCode=(\d+)') for p in packages]
 assert first[0]==first[1], 'First-install timestamp changed'
 assert uid[0]==uid[1], 'Package UID changed'
-assert code==['19','20'], 'Wrong upgrade version sequence: '+str(code)
+cfg=json.loads(Path('release/release.json').read_text())
+expected=[str(cfg['previousRelease']['versionCode']),str(cfg['versionCode'])]
+assert code==expected, 'Wrong upgrade version sequence: '+str(code)
 digest=hashlib.sha256(json.dumps(before,sort_keys=True,ensure_ascii=False).encode()).hexdigest()
-summary={'status':'PASS','package':'ir.dong.household','upgrade':'19 -> 20','installMode':'adb install -r','firstInstallTimePreserved':True,'uidPreserved':True,'houseTravelAndBackupsEqual':True,'houseEvents':len(before['ledgerRows']),'installmentPlans':len(before['contractRows']),'travelSnapshots':len(before['travelBackups']),'privateBackupFiles':len(before['privateBackupFiles']),'stateSha256':digest,'signerMode':os.environ.get('DONG_UPGRADE_SIGNER_KIND','ci')}
+summary={'status':'PASS','package':'ir.dong.household','upgrade':expected[0]+' -> '+expected[1],'installMode':'adb install -r','firstInstallTimePreserved':True,'uidPreserved':True,'houseTravelAndBackupsEqual':True,'houseEvents':len(before['ledgerRows']),'installmentPlans':len(before['contractRows']),'travelSnapshots':len(before['travelBackups']),'privateBackupFiles':len(before['privateBackupFiles']),'stateSha256':digest,'signerMode':os.environ.get('DONG_UPGRADE_SIGNER_KIND','ci')}
 (root/'upgrade-summary.json').write_text(json.dumps(summary,ensure_ascii=False,indent=2))
 print(json.dumps(summary,ensure_ascii=False,indent=2))
 PY
