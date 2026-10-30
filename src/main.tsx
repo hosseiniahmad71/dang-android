@@ -3,7 +3,7 @@ import {createRoot} from 'react-dom/client';
 import {Wallet,LayoutDashboard,ShoppingBasket,ArrowDownToLine,CalendarClock,ArrowLeftRight,Settings,History,Plus,Check,Info,AlertTriangle,Users,ChartNoAxesCombined,Landmark,ReceiptText,RotateCcw,Download,CalendarDays,CreditCard,ShieldAlert,TrendingDown,TrendingUp,ChevronLeft,House,Search,Trash2, CircleAlert} from 'lucide-react';
 import {MoneyInput,PersianDate,SearchSelect,TextField,Option} from './controls';
 import {currentIso,daysInJalaliMonth,fnum,jalaliKey,jalaliLabel,jalaliParts,monthLabel,numberWords,offsetMonth,parseMonthKey,parseToman,safeToman,toIsoFromJalali,tomanWords} from './utils';
-import {Store,Event,Plan,initialStore,fundBalance,obligation,memberCredits,waived,periodOf,paidAmount,effectiveEvents,custodyBalances} from './types';
+import {Store,Event,Plan,initialStore,fundBalance,obligation,memberCredits,waived,periodOf,paidAmount,effectiveEvents,custodyBalances,personalPaymentIds} from './types';
 import {availableSurplus,canRegister,expenseByCategory,periodFlow,periodStatistics,remainingInstallment,previousDebt} from './finance';
 import {SettingsView} from './settings';
 import {TravelView} from './travel';
