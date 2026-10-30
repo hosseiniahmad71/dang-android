@@ -17,8 +17,8 @@ test('operations acknowledge persistence only after successful SQLite commit',()
  const ok=code.indexOf('if(successMessage)setToast');
  assert.ok(save>=0&&ok>save,'Success must follow awaited SQLite save');
  assert.match(code,/setToast\('ثبت عملیات ناموفق بود/);
- assert.match(app,/commit\(next,name\);setToast\('در حال ثبت و ذخیره عملیات در SQLite/);
- assert.match(app,/قرارداد اقساطی'\);setToast\('در حال ثبت و ذخیره قرارداد اقساطی/);
+ assert.match(app,/commit\(next,name\);setToast\('در حال ثبت عملیات/);
+ assert.match(app,/قرارداد اقساطی'\);setToast\('در حال ثبت قرارداد اقساط/);
  assert.match(app,/if\(!toast.includes\('با موفقیت'\)\)return/);
 });
 
