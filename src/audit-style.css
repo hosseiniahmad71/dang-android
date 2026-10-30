@@ -27,3 +27,10 @@
 @media(max-width:900px){.audit-summary-pair{grid-template-columns:1fr}.audit-equation{min-height:0}}
 @media(max-width:520px){.audit-summary-card,.audit-detail-card{padding:15px;border-radius:18px}.audit-figures,.audit-detail-card .audit-figures{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.audit-figure{padding:10px}.audit-figure strong{font-size:clamp(13px,4vw,17px)}.audit-expense-shortcut{padding:13px 11px;flex-wrap:wrap}.audit-expense-shortcut strong{font-size:13px}.audit-title h2{font-size:16px}.audit-summary-head>span{font-size:11px}.audit-member-link{flex-wrap:wrap}.audit-member-link b{font-size:11px}}
 @media(max-width:340px){.audit-figures,.audit-detail-card .audit-figures{grid-template-columns:1fr}.audit-expense-shortcut>span{font-size:12px}}
+
+.payment-help{border:1px solid #d8e5f4;background:#f7faff;border-radius:13px;padding:12px 14px;margin:15px 0;color:#25486f}
+.payment-help summary{cursor:pointer;display:flex;align-items:center;gap:8px;font-size:13px;font-weight:750;list-style:none}
+.payment-help summary::-webkit-details-marker{display:none}
+.payment-help p{font-size:12px;color:#607991;line-height:1.85;margin:10px 0 0}
+.toast,.toast.toast-success,.toast.toast-error,.toast.toast-pending{background:#153e70!important;color:white!important;border:1px solid #244b7d!important;border-radius:16px!important;box-shadow:0 14px 40px #0d315047!important;max-width:min(92vw,550px);line-height:1.9;overflow-wrap:anywhere;z-index:1200}
+.toast>svg{flex-shrink:0}.toast button{color:white!important;min-width:28px;min-height:28px;border-radius:9px}
