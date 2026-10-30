@@ -70,6 +70,22 @@ jobs:
           echo 'DONG_KEY_PASSWORD=ci-validation-only' >> "$GITHUB_ENV"
       - name: Build release payload for runtime validation
         run: cd android && gradle --no-daemon assembleRelease assembleReleaseAndroidTest -PdongTestBuildType=release
+      - name: Build previous 1.0.3 with the same disposable CI signing key
+        run: |
+          set -euo pipefail
+          BASE_COMMIT="$(node -p "require('./release/release.json').previousRelease.sourceCommit")"
+          test -n "$BASE_COMMIT"
+          git worktree add --detach "$RUNNER_TEMP/dong-previous" "$BASE_COMMIT"
+          (
+            cd "$RUNNER_TEMP/dong-previous"
+            npm ci --no-audit --no-fund
+            npm run build:android
+            cd android
+            gradle --no-daemon assembleRelease
+          )
+          mkdir -p upgrade-evidence
+          cp "$RUNNER_TEMP/dong-previous/android/app/build/outputs/apk/release/app-release.apk" upgrade-evidence/dong-previous-ci.apk
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose upgrade-evidence/dong-previous-ci.apk
       - name: Verify actual APK package, assets and ZIP integrity
         run: |
           set -euo pipefail
@@ -95,7 +111,7 @@ jobs:
           arch: x86_64
           target: google_apis
           disable-animations: true
-          script: bash scripts/run-android-test.sh
+          script: bash scripts/run-android-test.sh && bash scripts/run-ci-upgrade-test.sh
       - name: Collect runtime evidence
         if: always()
         run: |
@@ -112,6 +128,10 @@ jobs:
           name: Dong-validation-runtime-evidence
           path: |
             runtime-evidence/
+            upgrade-evidence/upgrade-summary.json
+            upgrade-evidence/seed.txt
+            upgrade-evidence/verify.txt
+            upgrade-evidence/install-upgrade.txt
             android/app/build/reports/androidTests/
             android/app/build/outputs/androidTest-results/
       - name: Remove disposable CI key
