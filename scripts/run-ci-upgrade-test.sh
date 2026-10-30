@@ -7,6 +7,9 @@ OLD=upgrade-evidence/dong-previous-ci.apk
 NEW=android/app/build/outputs/apk/release/app-release.apk
 TEST="${DONG_ANDROID_TEST_APK:-android/app/build/outputs/apk/androidTest/release/app-release-androidTest.apk}"
 mkdir -p upgrade-evidence
+# Emulator-only root access allows evidence capture from non-debuggable release APKs.
+adb root
+adb wait-for-device
 test -s "$OLD"; test -s "$NEW"; test -s "$TEST"
 TOOL="$ANDROID_HOME/build-tools/35.0.0/apksigner"
 test -x "$TOOL"
@@ -27,18 +30,18 @@ adb shell am instrument -w -e class 'ir.dong.household.UpgradeTest#seedOriginal'
 grep -q 'OK (1 test)' upgrade-evidence/seed.txt
 adb shell am force-stop "$PKG"
 adb shell dumpsys package "$PKG" > upgrade-evidence/package-before.txt
-adb exec-out run-as "$PKG" cat databases/dong.sqlite > upgrade-evidence/before.sqlite
+adb exec-out cat "/data/data/$PKG/databases/dong.sqlite" > upgrade-evidence/before.sqlite
 test -s upgrade-evidence/before.sqlite
 adb install -r "$NEW" | tee upgrade-evidence/install-upgrade.txt
 grep -q Success upgrade-evidence/install-upgrade.txt
 adb shell dumpsys package "$PKG" > upgrade-evidence/package-after.txt
-adb exec-out run-as "$PKG" cat databases/dong.sqlite > upgrade-evidence/after.sqlite
+adb exec-out cat "/data/data/$PKG/databases/dong.sqlite" > upgrade-evidence/after.sqlite
 adb shell am start -n "$PKG/.MainActivity"
 sleep 4
 adb shell am instrument -w -e class 'ir.dong.household.UpgradeTest#verifyAfterUpdate' "$PKG.test/androidx.test.runner.AndroidJUnitRunner" | tee upgrade-evidence/verify.txt
 grep -q 'OK (1 test)' upgrade-evidence/verify.txt
 adb shell am force-stop "$PKG"
-adb exec-out run-as "$PKG" cat databases/dong.sqlite > upgrade-evidence/after-reopen.sqlite
+adb exec-out cat "/data/data/$PKG/databases/dong.sqlite" > upgrade-evidence/after-reopen.sqlite
 python3 - <<'PY'
 import sqlite3,hashlib,json,re,os
 from pathlib import Path
