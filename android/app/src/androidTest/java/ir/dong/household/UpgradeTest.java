@@ -11,6 +11,43 @@ import static org.junit.Assert.*;
 /** Isolated synthetic data for in-place upgrade validation only. Never ship seeded finance records. */
 @RunWith(AndroidJUnit4.class)
 public class UpgradeTest {
+ private void exportSnapshot(DongDatabase db,String phase) throws Exception {
+  android.content.Context ctx=InstrumentationRegistry.getInstrumentation().getTargetContext();
+  JSONObject state=new JSONObject();
+  state.put("house",db.get());
+  state.put("travel",db.getTravel());
+  state.put("houseBackups",db.list());
+  state.put("travelBackups",db.listTravelBackups());
+  JSONArray ledger=new JSONArray(),contracts=new JSONArray();
+  try(android.database.Cursor c=db.getReadableDatabase().rawQuery(
+    "SELECT id,kind,date,amount_toman,payload,revision FROM ledger_events ORDER BY id",null)){
+    while(c.moveToNext())ledger.put(new JSONArray().put(c.getString(0)).put(c.getString(1))
+      .put(c.getString(2)).put(c.getLong(3)).put(new JSONObject(c.getString(4))).put(c.getInt(5)));
+  }
+  try(android.database.Cursor c=db.getReadableDatabase().rawQuery(
+    "SELECT id,payload,revision FROM installment_contracts ORDER BY id",null)){
+    while(c.moveToNext())contracts.put(new JSONArray().put(c.getString(0))
+      .put(new JSONObject(c.getString(1))).put(c.getInt(2)));
+  }
+  state.put("ledgerRows",ledger).put("contractRows",contracts);
+  java.io.File folder=new java.io.File(ctx.getFilesDir(),"backups");
+  java.io.File[] files=folder.listFiles();
+  JSONArray backups=new JSONArray();
+  if(files!=null){
+   java.util.Arrays.sort(files,java.util.Comparator.comparing(java.io.File::getName));
+   for(java.io.File file:files){
+    byte[] bytes=java.nio.file.Files.readAllBytes(file.toPath());
+    byte[] digest=java.security.MessageDigest.getInstance("SHA-256").digest(bytes);
+    StringBuilder hash=new StringBuilder();
+    for(byte b:digest)hash.append(String.format(java.util.Locale.ROOT,"%02x",b&255));
+    backups.put(new JSONObject().put("name",file.getName()).put("sha256",hash.toString()));
+   }
+  }
+  state.put("privateBackupFiles",backups);
+  java.io.File destination=new java.io.File(ctx.getExternalFilesDir(null),"dong-upgrade-"+phase+".json");
+  java.nio.file.Files.write(destination.toPath(),state.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8));
+  assertTrue("Upgrade evidence file must exist",destination.isFile()&&destination.length()>0);
+ }
  @Test public void seedOriginal() throws Exception {
   DongDatabase db=new DongDatabase(InstrumentationRegistry.getInstrumentation().getTargetContext());
   JSONObject current=db.get();
@@ -47,6 +84,7 @@ public class UpgradeTest {
   db.saveTravel(new JSONObject().put("version",1).put("trips",new JSONArray().put(trip)),0);
   assertEquals(2,db.get().getJSONObject("store").getJSONArray("events").length());
   assertEquals(1,db.getTravel().getJSONObject("travel").getJSONArray("trips").length());
+  exportSnapshot(db,"before");
  }
  @Test public void verifyAfterUpdate() throws Exception {
   DongDatabase db=new DongDatabase(InstrumentationRegistry.getInstrumentation().getTargetContext());
@@ -67,5 +105,8 @@ public class UpgradeTest {
   assertEquals("upgrade-trip",trips.getJSONObject(0).getString("id"));
   assertEquals(101,trips.getJSONObject(0).getJSONArray("expenses").getJSONObject(0).getInt("amount"));
   assertTrue("Travel backup must survive upgrade",db.listTravelBackups().length()>=1);
+  String phase=InstrumentationRegistry.getArguments().getString("snapshot","after");
+  if(!phase.equals("after")&&!phase.equals("after-reopen"))throw new IllegalArgumentException("Invalid snapshot phase");
+  exportSnapshot(db,phase);
  }
 }
