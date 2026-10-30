@@ -110,7 +110,8 @@ test('dashboard routes, grouped cash and dues, and nontechnical Persian alerts a
  assert.match(main,/page==='audit'\?<AuditDetailView/);
  assert.match(views,/موجودی حساب اصلی/);
  assert.match(views,/پول صندوق نزد کارت‌ها/);
- assert.match(views,/اعتبار پرداخت‌شده/);
+ assert.match(views,/جمع اعتبار خالص/);
+ assert.match(views,/اعتبار خرید با پول شخصی/);
  assert.match(views,/جست‌وجوی گردش مالی/);
  assert.doesNotMatch(main,/اطلاعات در SQLite داخلی برنامه اندروید ذخیره می‌شوند/);
 });
