@@ -179,3 +179,9 @@ body{line-height:1.75}button,input,textarea{font:inherit}svg.lucide{stroke-width
  .installment-pay-direct{width:100%;justify-content:center}
  .record-amount{min-width:0}
 }
+
+/* Dong 1.0.4 dashboard geometry, with native accessible navigation on each compact metric. */
+.metric-button{display:block;appearance:none;width:100%;font:inherit;text-align:right;color:inherit;cursor:pointer;min-width:0}
+.metric-button:focus-visible{outline:3px solid #3676b6;outline-offset:3px}
+.metric-button:active{transform:translateY(1px)}
+.metric-button .metric-head,.metric-button strong,.metric-button small{pointer-events:none}

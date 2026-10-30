@@ -23,9 +23,11 @@ test('operations acknowledge persistence only after successful SQLite commit',()
 });
 
 test('V1 branding and backup instructions cannot regress to 7.3.1',()=>{
- assert.equal(config.versionName,'1.0.5');
+ assert.equal(config.versionName,'1.0.6');
  assert.equal(config.applicationId,'ir.dong.household');
- assert.match(app,/نسخه رسمی ۱\.۰\.۵/);
+ assert.match(app,/نسخه رسمی \{release\.versionName\}/);
+ assert.match(settings,/نسخه V\{release\.versionName\}/);
+ assert.doesNotMatch(settings,/نسخه V1\.0\.3/);
  assert.doesNotMatch(app,/نسخه ۷\.۳\.۱ · کاملاً آفلاین/);
  assert.match(app,/پشتیبان مستقل بدون رمز را در محل امن نگه دار/);
  assert.match(settings,/بک‌آپ و بازیابی آسان، بدون رمز/);
@@ -39,7 +41,7 @@ test('Dong is the customer-facing English brand, technical identifiers reflect n
  const native=readFileSync('src/native-bridge.ts','utf8');
  const database=readFileSync('src/database.ts','utf8');
  const strings=readFileSync('android/app/src/main/res/values/strings.xml','utf8');
- assert.match(boot,/Dong V1\.0\.5 startup diagnostic/);
+ assert.match(boot,/Dong V1\.0\.6 startup diagnostic/);
  assert.match(boot,/dong-startup-diagnostic\.txt/);
  assert.doesNotMatch(boot,/DANG 7\.3 startup diagnostic/);
  assert.equal((native.match(/const filename=`dong-/g)||[]).length,2);
