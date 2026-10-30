@@ -95,14 +95,57 @@ public class StartupTest {
   for(int i=0;i<node.getChildCount();i++)if(accept(node.getChild(i)))return true;
   return false;
  }
+ // Android CI emulators can surface a Pixel Launcher ANR over the WebView.
+ // Dismiss only this OS popup using "Wait"; still REQUIRE a truly visible soft keyboard.
+ private boolean nodeContains(android.view.accessibility.AccessibilityNodeInfo node,String needle){
+  if(node==null)return false;
+  if(node.getText()!=null&&node.getText().toString().contains(needle))return true;
+  for(int i=0;i<node.getChildCount();i++)if(nodeContains(node.getChild(i),needle))return true;
+  return false;
+ }
+ private boolean clickNodeWithText(android.view.accessibility.AccessibilityNodeInfo node,String exact){
+  if(node==null)return false;
+  if(node.getText()!=null&&exact.equals(node.getText().toString())){
+   android.view.accessibility.AccessibilityNodeInfo target=node;
+   while(target!=null){
+    if(target.isClickable()&&target.performAction(android.view.accessibility.AccessibilityNodeInfo.ACTION_CLICK))return true;
+    target=target.getParent();
+   }
+  }
+  for(int i=0;i<node.getChildCount();i++)if(clickNodeWithText(node.getChild(i),exact))return true;
+  return false;
+ }
+ private boolean dismissLauncherANR(){
+  android.view.accessibility.AccessibilityNodeInfo root=InstrumentationRegistry.getInstrumentation().getUiAutomation().getRootInActiveWindow();
+  if(root==null||!nodeContains(root,"Pixel Launcher isn't responding"))return false;
+  return clickNodeWithText(root,"Wait");
+ }
+ private boolean imeVisible(){
+  AtomicReference<Boolean> visible=new AtomicReference<>(false);
+  scenario.getScenario().onActivity(a->{
+   android.view.WindowInsets insets=a.getWindow().getDecorView().getRootWindowInsets();
+   visible.set(insets!=null&&insets.isVisible(android.view.WindowInsets.Type.ime()));
+  });
+  return visible.get();
+ }
  private void touchSearchInput()throws Exception{
-  JSONObject p=new JSONObject(js("var r=document.querySelector('.search-dialog input').getBoundingClientRect();return {x:r.x+r.width/2,y:r.y+r.height/2}"));
-  AtomicReference<float[]> coords=new AtomicReference<>();
-  scenario.getScenario().onActivity(a->{WebView w=find(a.getWindow().getDecorView());int[] loc=new int[2];w.getLocationOnScreen(loc);coords.set(new float[]{loc[0]+(float)p.optDouble("x")*w.getScale(),loc[1]+(float)p.optDouble("y")*w.getScale()});});
-  long now=android.os.SystemClock.uptimeMillis();float[] xy=coords.get();
-  for(int action:new int[]{android.view.MotionEvent.ACTION_DOWN,android.view.MotionEvent.ACTION_UP}){android.view.MotionEvent event=android.view.MotionEvent.obtain(now,now+30,action,xy[0],xy[1],0);InstrumentationRegistry.getInstrumentation().getUiAutomation().injectInputEvent(event,true);event.recycle();}
   boolean visible=false;
-  for(int i=0;i<100&&!visible;i++){AtomicReference<Boolean> v=new AtomicReference<>(false);scenario.getScenario().onActivity(a->v.set(a.getWindow().getDecorView().getRootWindowInsets().isVisible(android.view.WindowInsets.Type.ime())));visible=v.get();if(!visible)Thread.sleep(100);}
+  for(int attempt=0;attempt<3&&!visible;attempt++){
+   dismissLauncherANR();
+   JSONObject p=new JSONObject(js("var r=document.querySelector('.search-dialog input').getBoundingClientRect();return {x:r.x+r.width/2,y:r.y+r.height/2}"));
+   AtomicReference<float[]> coords=new AtomicReference<>();
+   scenario.getScenario().onActivity(a->{WebView w=find(a.getWindow().getDecorView());int[] loc=new int[2];w.getLocationOnScreen(loc);coords.set(new float[]{loc[0]+(float)p.optDouble("x")*w.getScale(),loc[1]+(float)p.optDouble("y")*w.getScale()});});
+   long now=android.os.SystemClock.uptimeMillis();float[] xy=coords.get();
+   for(int action:new int[]{android.view.MotionEvent.ACTION_DOWN,android.view.MotionEvent.ACTION_UP}){
+    android.view.MotionEvent event=android.view.MotionEvent.obtain(now,now+30,action,xy[0],xy[1],0);
+    InstrumentationRegistry.getInstrumentation().getUiAutomation().injectInputEvent(event,true);event.recycle();
+   }
+   for(int i=0;i<30&&!visible;i++){
+    if(dismissLauncherANR())break;
+    visible=imeVisible();
+    if(!visible)Thread.sleep(100);
+   }
+  }
   assertTrue("Keyboard must really open during selector regression test",visible);
  }
  @Test public void offlineDashboardFinanceAndReopen() throws Exception {
