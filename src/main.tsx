@@ -245,7 +245,7 @@ function HistoryView({store,onReverse}:{store:Store,onReverse:(id:string,reason:
   return (`${EventTitle(event,store)} ${EventDescription(event,store)} ${event.description||''} ${reversalByOriginal.has(event.id)?'باطل‌شده':''}`).includes(query);
  }).slice().reverse();
  const confirmReversal=(event:Event)=>{
-  const message=`آیا «${EventTitle(event,store)}» باطل شود؟ اثر مالی آن لغو می‌شود، اما سابقه در دیتابیس محفوظ می‌ماند.`;
+  const message=`آیا «${EventTitle(event,store)}» باطل شود؟ اثر مالی آن لغو می‌شود، اما سابقه برای بررسی محفوظ می‌ماند.`;
   if(window.confirm(message))void onReverse(event.id,'ابطال با تأیید مدیر');
  };
  const correctAmount=(event:Event)=>{
@@ -297,7 +297,7 @@ function App(){
   useEffect(()=>{if(!toast.includes('با موفقیت'))return;const timer=window.setTimeout(()=>setToast(current=>current===toast?'':current),6000);return()=>window.clearTimeout(timer)},[toast]);
  function commit(next:Store,successMessage=''){if(!loaded||failed.current)return;predicted.current=next;setStore(next);setSaveState('در حال ثبت تغییرات…');queue.current=queue.current.then(async()=>{if(failed.current)return;const result=await saveStore(next);persisted.current=next;if(!failed.current){setSaveState(result.backupWarning?'ثبت شد؛ پشتیبان داخلی نیاز به بررسی دارد.':'تغییرات ذخیره شد');if(successMessage)setToast(result.backupWarning?`${successMessage} ثبت شد؛ ${result.backupWarning}`:`${successMessage} با موفقیت ثبت شد.`)}}).catch(e=>{failed.current=true;predicted.current=persisted.current;setStore(persisted.current);setFailure('ذخیره اطلاعات انجام نشد. برای حفاظت از حساب‌ها، ثبت عملیات موقتاً متوقف شده است؛ هیچ داده‌ای را پاک نکنید.');setSaveState('ذخیره انجام نشد');setToast('ثبت عملیات ناموفق بود؛ اطلاعات به آخرین وضعیت ذخیره‌شده برگشت.')});}
  function update(updater:(s:Store)=>Store){if(!loaded||failed.current)return;commit(updater(predicted.current))}
- async function replace(s:Store){if(failed.current)throw Error('دیتابیس خطا دارد؛ ابتدا مشکل ذخیره را برطرف کن.');await queue.current;await restoreStore(s);predicted.current=s;persisted.current=s;setStore(s);setSaveState('بازیابی انجام شد و در دیتابیس ذخیره شد.');setToast('بازیابی با موفقیت انجام شد.');}
+ async function replace(s:Store){if(failed.current)throw Error('ذخیره اطلاعات با مشکل روبه‌رو شده؛ ابتدا آن را برطرف کنید.');await queue.current;await restoreStore(s);predicted.current=s;persisted.current=s;setStore(s);setSaveState('اطلاعات بازیابی و ذخیره شد.');setToast('بازیابی با موفقیت انجام شد.');}
  async function lockedAction(fn:()=>Promise<Store>){try{await queue.current;const s=await fn();predicted.current=s;persisted.current=s;setStore(s);setToast('تغییرات مالی با موفقیت ثبت شد.')}catch(e){setToast('خطا: '+String(e))}}
  function reverse(id:string,reason:string,replacement?:Event){return lockedAction(()=>reverseFinancialEvent(id,reason,replacement))}
  function lockPeriod(p:string,locked:boolean,reason:string){return lockedAction(()=>setPeriodLock(p,locked,reason))}
