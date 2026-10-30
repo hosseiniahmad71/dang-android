@@ -78,8 +78,11 @@ public class StartupTest {
    AtomicReference<Boolean> statusBarReady=new AtomicReference<>(false);
    scenario.getScenario().onActivity(a->{
     int flags=a.getWindow().getDecorView().getSystemUiVisibility();
-    statusBarReady.set(a.getWindow().getStatusBarColor()==android.graphics.Color.WHITE &&
-      (flags & android.view.View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR)!=0);
+    int color=a.getWindow().getStatusBarColor();
+    // Android 15 edge-to-edge may report a transparent status bar even for a white window.
+    statusBarReady.set((color==android.graphics.Color.WHITE || color==android.graphics.Color.TRANSPARENT) &&
+      (flags & android.view.View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR)!=0 &&
+      (flags & android.view.View.SYSTEM_UI_FLAG_FULLSCREEN)==0);
    });
    assertTrue("Native status bar must be white with dark icons",statusBarReady.get());
    assertEquals("true",js("return Array.from(document.querySelectorAll('.metric strong')).every(x=>x.getBoundingClientRect().height<=parseFloat(getComputedStyle(x).lineHeight)+1&&x.scrollWidth<=x.clientWidth+1)"));
