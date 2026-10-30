@@ -8,8 +8,8 @@ android {
         minSdk 26
         targetSdk 35
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
-        versionCode 21
-        versionName '1.0.5'
+        versionCode 22
+        versionName '1.0.6'
     }
     signingConfigs {
         stable {
