@@ -74,8 +74,14 @@ public class StartupTest {
   assertNotNull("Android screenshot unavailable",image);
   java.io.ByteArrayOutputStream bytes=new java.io.ByteArrayOutputStream();image.compress(Bitmap.CompressFormat.PNG,100,bytes);
   if(name.equals("01-dashboard")){
-   int backdrop=image.getPixel(4,4);
-   assertTrue("Light system-bar icons need a light backdrop",android.graphics.Color.red(backdrop)>220&&android.graphics.Color.green(backdrop)>220&&android.graphics.Color.blue(backdrop)>220);
+   // Verify actual native window state; OS overlays can make screenshot pixel (4,4) misleading.
+   AtomicReference<Boolean> statusBarReady=new AtomicReference<>(false);
+   scenario.getScenario().onActivity(a->{
+    int flags=a.getWindow().getDecorView().getSystemUiVisibility();
+    statusBarReady.set(a.getWindow().getStatusBarColor()==android.graphics.Color.WHITE &&
+      (flags & android.view.View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR)!=0);
+   });
+   assertTrue("Native status bar must be white with dark icons",statusBarReady.get());
    assertEquals("true",js("return Array.from(document.querySelectorAll('.metric strong')).every(x=>x.getBoundingClientRect().height<=parseFloat(getComputedStyle(x).lineHeight)+1&&x.scrollWidth<=x.clientWidth+1)"));
   }
   writeEvidence(name+".png",bytes.toByteArray());
