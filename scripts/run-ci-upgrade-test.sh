@@ -5,9 +5,18 @@ set -euo pipefail
 PKG=ir.dong.household
 OLD=upgrade-evidence/dong-previous-ci.apk
 NEW=android/app/build/outputs/apk/release/app-release.apk
-TEST=android/app/build/outputs/apk/androidTest/release/app-release-androidTest.apk
+TEST="${DONG_ANDROID_TEST_APK:-android/app/build/outputs/apk/androidTest/release/app-release-androidTest.apk}"
 mkdir -p upgrade-evidence
 test -s "$OLD"; test -s "$NEW"; test -s "$TEST"
+TOOL="$ANDROID_HOME/build-tools/35.0.0/apksigner"
+test -x "$TOOL"
+OLD_CERT="$("$TOOL" verify --print-certs "$OLD" | sed -n 's/.*certificate SHA-256 digest: //p' | head -n 1)"
+NEW_CERT="$("$TOOL" verify --print-certs "$NEW" | sed -n 's/.*certificate SHA-256 digest: //p' | head -n 1)"
+test -n "$OLD_CERT" && test "$OLD_CERT" = "$NEW_CERT"
+if [ "${DONG_UPGRADE_SIGNER_KIND:-ci}" = "owner" ]; then
+  EXPECTED_CERT="$(node -p "require('./release/release.json').certificateSha256")"
+  test "$NEW_CERT" = "$EXPECTED_CERT" || { echo "Owner certificate mismatch"; exit 1; }
+fi
 # Clean slate only because earlier independent WebView tests ran in this disposable emulator.
 adb uninstall "$PKG" >/dev/null || true
 adb install "$OLD" | tee upgrade-evidence/install-baseline.txt
@@ -31,7 +40,7 @@ grep -q 'OK (1 test)' upgrade-evidence/verify.txt
 adb shell am force-stop "$PKG"
 adb exec-out run-as "$PKG" cat databases/dong.sqlite > upgrade-evidence/after-reopen.sqlite
 python3 - <<'PY'
-import sqlite3,hashlib,json,re
+import sqlite3,hashlib,json,re,os
 from pathlib import Path
 root=Path('upgrade-evidence')
 def rows(filename):
@@ -63,7 +72,7 @@ assert first[0]==first[1], 'First-install timestamp changed'
 assert uid[0]==uid[1], 'Package UID changed'
 assert code==['19','20'], 'Wrong upgrade version sequence: '+str(code)
 digest=hashlib.sha256(json.dumps(before,sort_keys=True,ensure_ascii=False,default=str).encode()).hexdigest()
-summary={'status':'PASS','package':'ir.dong.household','upgrade':'19 -> 20','installMode':'adb install -r','firstInstallTimePreserved':True,'uidPreserved':True,'houseTravelAndBackupsEqual':True,'houseEvents':len(before['ledger_events']),'installmentPlans':len(before['installment_contracts']),'travelSnapshots':len(before['travel_backups']),'sqliteStateSha256':digest,'signer':'disposable matching CI test signer; production key validated separately'}
+summary={'status':'PASS','package':'ir.dong.household','upgrade':'19 -> 20','installMode':'adb install -r','firstInstallTimePreserved':True,'uidPreserved':True,'houseTravelAndBackupsEqual':True,'houseEvents':len(before['ledger_events']),'installmentPlans':len(before['installment_contracts']),'travelSnapshots':len(before['travel_backups']),'sqliteStateSha256':digest,'signerMode':os.environ.get('DONG_UPGRADE_SIGNER_KIND','ci')}
 (root/'upgrade-summary.json').write_text(json.dumps(summary,ensure_ascii=False,indent=2))
 print(json.dumps(summary,ensure_ascii=False,indent=2))
 PY
