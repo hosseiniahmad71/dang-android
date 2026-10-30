@@ -27,7 +27,7 @@ export function cashAudit(store,period){
     }
     const fundChange=fundDelta(e);fund+=fundChange;
     if(fundChange||custodyChange||e.kind==='purchase'||e.kind==='payment'){
-      records.push({id:e.id,kind:e.kind,date:e.date,amount:e.amount,accountId:e.accountId||'',memberId:e.memberId||e.paidById||'',fundChange,custodyChange,custodyAccount,fundAfter:fund,totalAfter:fund+[...custody.values()].reduce((n,v)=>n+v,0),description:e.description||'',fundedBy:e.fundedBy||''});
+      records.push({id:e.id,kind:e.kind,date:e.date,amount:e.amount,accountId:e.accountId||'',destinationId:e.destinationId||'',memberId:e.memberId||e.paidById||'',fundChange,custodyChange,custodyAccount,fundAfter:fund,totalAfter:fund+[...custody.values()].reduce((n,v)=>n+v,0),description:e.description||'',fundedBy:e.fundedBy||''});
     }
   }
   const custodyBalances=Object.fromEntries([...custody].filter(([,amount])=>amount!==0));
@@ -69,10 +69,10 @@ export function memberAudit(store,id,period){
       if(personal&&e.paidById===id)effect=e.amount;
       if(!personal)label+=' از پول صندوق نزد کارت';
     }
-    if(e.kind==='waiver'&&e.memberId===id){relevant=true;label='بخشودگی بدهی';periodKey=e.period}
+    if(e.kind==='waiver'&&e.memberId===id){relevant=true;label='بخشودگی بدهی';periodKey=e.period;effect=e.amount}
     if(e.kind==='refund'&&e.memberId===id){relevant=true;label='بازپرداخت مازاد';periodKey=e.period;effect=-e.amount}
     if(e.kind==='creditMove'&&e.memberId===id){relevant=true;label='انتقال اعتبار بین ماه‌ها';periodKey=e.sourcePeriod;if(e.sourcePeriod===period)effect=-e.amount;else if(e.targetPeriod===period)effect=e.amount}
-    if(e.kind==='obligationAdjust'&&e.memberId===id){relevant=true;label='تغییر تعهد دنگ';periodKey=e.period}
+    if(e.kind==='obligationAdjust'&&e.memberId===id){relevant=true;label='تغییر تعهد دنگ';periodKey=e.period;effect=e.direction==='decrease'?e.amount:-e.amount}
     if(e.kind==='transfer'&&(ownedAccounts.has(e.accountId)||ownedAccounts.has(e.destinationId))){relevant=true;label='جابجایی پول صندوق نزد کارت';periodKey=eventPeriod(e.date)}
     if(!relevant)return null;
     const reversed=cancelled.get(e.id);
