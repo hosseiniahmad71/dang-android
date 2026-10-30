@@ -72,6 +72,7 @@ jobs:
         run: cd android && gradle --no-daemon assembleRelease assembleReleaseAndroidTest -PdongTestBuildType=release
       - name: Verify actual APK package, assets and ZIP integrity
         run: |
+          set -euo pipefail
           mkdir -p runtime-evidence
           python3 scripts/verify-apk.py android/app/build/outputs/apk/release/app-release.apk --aapt "$ANDROID_HOME/build-tools/35.0.0/aapt" --expected-package ir.dong.household | tee runtime-evidence/apk-metadata.json
       - uses: actions/upload-artifact@v4
