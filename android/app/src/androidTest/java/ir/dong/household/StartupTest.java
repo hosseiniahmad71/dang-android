@@ -145,7 +145,8 @@ public class StartupTest {
   assertEquals("true",js("return document.querySelector('form').innerText.includes('پرداخت‌کننده واقعی را انتخاب کنید')"));
   js("var c=Array.from(document.querySelectorAll('form .control')).find(x=>x.querySelector('label')?.textContent.includes('چه کسی واقعاً پرداخت کرد؟'));if(!c)throw Error('Missing payer selector');c.querySelector('.select-trigger').click();return true");
   until("document.querySelector('.search-dialog[open] [role=option]')");
-  js("var o=Array.from(document.querySelectorAll('.search-dialog[open] [role=option]')).find(x=>x.textContent.includes('صندوق مشترک'));if(!o)throw Error('Missing fund payer');o.click();return true");
+  // The fixture puts household money in a custodial card, not the main cash box.
+  js("var o=Array.from(document.querySelectorAll('.search-dialog[open] [role=option]')).find(x=>x.textContent.includes('وجه امانی'));if(!o)throw Error('Missing funded custody source');o.click();return true");
   js("document.querySelector('form button[type=submit]').click();return true");
   until("JSON.parse(DongNative.invoke(JSON.stringify({op:'get'}))).value.store.events.length===3");
   tap(".mobile-nav button","اقساط");screenshot("02-installments");
