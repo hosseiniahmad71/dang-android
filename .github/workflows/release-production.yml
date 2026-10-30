@@ -1,6 +1,9 @@
 name: Release Dong with permanent owner signer
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths: [release/release.json]
 permissions:
   contents: read
 concurrency:
@@ -13,6 +16,8 @@ jobs:
     timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -36,17 +41,15 @@ jobs:
           npm run build:android
           node scripts/build-android-test.mjs
           node --test tests/*.test.mjs tests/ui-contract.test.cjs
-      - name: Ensure first baseline or require upgrade verification for later versions
+      - name: Enforce version increment and pinned previous source
         run: |
           node - <<'NODE'
-          const fs=require('fs');
           const x=require('./release/release.json');
-          if(x.applicationId!=='ir.dong.household'||x.product!=='Dong')throw Error('Wrong product/package');
-          if(x.versionCode===16&&x.versionName==='1.0.0')process.exit(0);
-          // Future versions may NOT reissue a clean-install-only release as an update.
-          if(!x.previousRelease?.apk || !fs.existsSync(x.previousRelease.apk))
-            throw Error('Later Dong versions need a previously OWNER-signed APK and tested in-place upgrade');
-          throw Error('Implement and audit previous-release SQLite install -r comparison before shipping a future version');
+          if(x.applicationId!=='ir.dong.household'||x.product!=='Dong')throw Error('Wrong app identity');
+          if(!Number.isInteger(x.versionCode)||x.versionCode<=x.previousRelease?.versionCode)throw Error('Version code did not increase');
+          if(!x.previousRelease?.sourceCommit)throw Error('Missing reproducible previous source');
+          if(x.certificateSha256!==x.previousRelease.certificateSha256)throw Error('Signer changed');
+          console.log('Production upgrade requires baseline',x.previousRelease.versionCode,'and candidate',x.versionCode);
           NODE
       - name: Load private owner key from Secrets only
         env:
@@ -77,6 +80,7 @@ jobs:
       - name: Pin APK package identity, version and owner certificate
         run: |
           set -euo pipefail
+          set -euo pipefail
           mkdir -p production-evidence
           python3 scripts/verify-apk.py android/app/build/outputs/apk/release/app-release.apk --aapt "$ANDROID_HOME/build-tools/35.0.0/aapt" --expected-package ir.dong.household | tee production-evidence/apk-metadata.json
           python3 - <<'PY'
@@ -94,6 +98,24 @@ jobs:
           pathlib.Path('production-evidence/identity.json').write_text(json.dumps(evidence,indent=2))
           print(json.dumps(evidence,indent=2))
           PY
+      - name: Build pinned previous release using SAME permanent owner signer
+        env:
+          DONG_KEYSTORE_PASSWORD: ${{ secrets.DONG_KEYSTORE_PASSWORD }}
+          DONG_KEY_ALIAS: ${{ secrets.DONG_KEY_ALIAS }}
+          DONG_KEY_PASSWORD: ${{ secrets.DONG_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          BASE_COMMIT="$(node -p "require('./release/release.json').previousRelease.sourceCommit")"
+          git worktree add --detach "$RUNNER_TEMP/dong-prev" "$BASE_COMMIT"
+          (
+            cd "$RUNNER_TEMP/dong-prev"
+            npm ci --no-audit --no-fund
+            npm run build:android
+            cd android
+            gradle --no-daemon assembleRelease
+          )
+          mkdir -p upgrade-evidence
+          cp "$RUNNER_TEMP/dong-prev/android/app/build/outputs/apk/release/app-release.apk" upgrade-evidence/dong-previous-ci.apk
       - name: Sign instrumentation APK with the exact same owner key
         env:
           DONG_KEYSTORE_PASSWORD: ${{ secrets.DONG_KEYSTORE_PASSWORD }}
@@ -117,16 +139,20 @@ jobs:
           arch: x86_64
           target: google_apis
           disable-animations: true
-          script: bash scripts/run-dong-release-smoke.sh
+          script: bash scripts/run-android-test.sh && DONG_UPGRADE_SIGNER_KIND=owner DONG_ANDROID_TEST_APK=android/app/build/outputs/apk/androidTest/release/dong-test-signed.apk bash scripts/run-ci-upgrade-test.sh
       - name: Store the verified owner-signed APK and metadata
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: Dong-v1.0.0-OWNER-SIGNED-VERIFIED
-          retention-days: 14
+          name: Dong-OWNER-SIGNED-VERIFIED-UPGRADE
+          retention-days: 90
           path: |
             android/app/build/outputs/apk/release/app-release.apk
             production-evidence/
+            upgrade-evidence/upgrade-summary.json
+            upgrade-evidence/install-upgrade.txt
+            upgrade-evidence/seed.txt
+            upgrade-evidence/verify.txt
           if-no-files-found: error
       - name: Destroy temporary signing material
         if: always()

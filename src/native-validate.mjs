@@ -22,6 +22,7 @@ export function validateStore(raw){
  requireGood(raw.accounts.every(a=>obj(a)&&id(a.id)&&name(a.name)&&['fund','personal','other'].includes(a.kind)&&(!a.ownerId||memberIds.has(a.ownerId)))&&uniq(raw.accounts.map(a=>a.id)),'حساب‌های بانکی نامعتبرند.');
  requireGood(raw.accounts.filter(a=>a.id==='fund'&&a.kind==='fund').length===1,'صندوق اصلی باید وجود داشته باشد.');
  const accountIds=new Set(raw.accounts.map(a=>a.id));
+  requireGood(!accountIds.has('__dong_member_cash__'),'شناسه حساب رزروشده برای وجه شخصی معتبر نیست.');
  requireGood(raw.categories.every(name)&&uniq(raw.categories)&&raw.providers.every(name)&&uniq(raw.providers),'دسته‌بندی یا سرویس تکراری یا نامعتبر است.');
  const categories=new Set(raw.categories),providers=new Set(raw.providers);
  for(const [key,value] of Object.entries(raw.contributionOverrides))requireGood(/^\d{4}\/(0[1-9]|1[0-2])\|[^|]+$/.test(key)&&memberIds.has(key.split('|')[1])&&nonnegative(value),'دنگ اختصاصی ماه نامعتبر است.');
@@ -45,7 +46,7 @@ export function validateStore(raw){
      (e.creditOnly===undefined||typeof e.creditOnly==='boolean')&&
      (e.destinationId===undefined?(e.accountId!=='fund'):(e.destinationId===e.accountId)),
      'واریز دنگ یا حساب مقصد نامعتبر است.');break;
-   case 'payment':requireGood((e.fundedBy===undefined||['fund','personal'].includes(e.fundedBy))&&amounts.has(e.installmentId)&&accountIds.has(e.accountId)&&month(e.creditPeriod)&&(e.accountId==='fund'||e.fundedBy==='fund'||memberIds.has(e.paidById)),'پرداخت قسط نامعتبر است.');paymentSums.set(e.installmentId,(paymentSums.get(e.installmentId)||0)+e.amount);break;
+   case 'payment':requireGood((e.fundedBy===undefined||['fund','personal'].includes(e.fundedBy))&&amounts.has(e.installmentId)&&(accountIds.has(e.accountId)||(e.accountId==='__dong_member_cash__'&&e.fundedBy==='personal'&&memberIds.has(e.paidById)))&&month(e.creditPeriod)&&(e.accountId==='fund'||e.fundedBy==='fund'||memberIds.has(e.paidById)),'پرداخت قسط نامعتبر است.');paymentSums.set(e.installmentId,(paymentSums.get(e.installmentId)||0)+e.amount);break;
    case 'transfer':requireGood(accountIds.has(e.accountId)&&accountIds.has(e.destinationId)&&e.accountId!==e.destinationId,'انتقال وجه نامعتبر است.');break;
    case 'waiver':case 'refund':requireGood(memberIds.has(e.memberId)&&month(e.period)&&(e.kind!=='refund'||!e.accountId||accountIds.has(e.accountId)),'تسویه یا بخشودگی نامعتبر است.');break;
    case 'creditMove':requireGood(memberIds.has(e.memberId)&&month(e.sourcePeriod)&&month(e.targetPeriod)&&e.sourcePeriod!==e.targetPeriod,'انتقال اعتبار نامعتبر است.');break;

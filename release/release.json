@@ -1,17 +1,18 @@
 {
   "product": "Dong",
   "appNameFa": "دُنگ",
-  "versionName": "1.0.3",
-  "versionCode": 19,
+  "versionName": "1.0.4",
+  "versionCode": 20,
   "applicationId": "ir.dong.household",
   "certificateSha256": "8f5ee72bc0e7586b8b6188e6817f4c616bad2df7546da7595291e7ea36911d93",
   "signingKeyAlias": "dong-release",
   "releaseLine": "dong-stable-update",
   "previousRelease": {
-    "versionCode": 18,
-    "versionName": "1.0.2",
+    "versionCode": 19,
+    "versionName": "1.0.3",
     "applicationId": "ir.dong.household",
-    "certificateSha256": "8f5ee72bc0e7586b8b6188e6817f4c616bad2df7546da7595291e7ea36911d93"
+    "certificateSha256": "8f5ee72bc0e7586b8b6188e6817f4c616bad2df7546da7595291e7ea36911d93",
+    "sourceCommit": "d4fca717adc0fd4454961e57cb08b1a4c38583c6"
   },
   "oldPackagesNotUpgradable": [
     "ir.dang.household",

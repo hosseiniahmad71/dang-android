@@ -74,8 +74,17 @@ public class StartupTest {
   assertNotNull("Android screenshot unavailable",image);
   java.io.ByteArrayOutputStream bytes=new java.io.ByteArrayOutputStream();image.compress(Bitmap.CompressFormat.PNG,100,bytes);
   if(name.equals("01-dashboard")){
-   int backdrop=image.getPixel(4,4);
-   assertTrue("Light system-bar icons need a light backdrop",android.graphics.Color.red(backdrop)>220&&android.graphics.Color.green(backdrop)>220&&android.graphics.Color.blue(backdrop)>220);
+   // Verify actual native window state; OS overlays can make screenshot pixel (4,4) misleading.
+   AtomicReference<Boolean> statusBarReady=new AtomicReference<>(false);
+   scenario.getScenario().onActivity(a->{
+    int flags=a.getWindow().getDecorView().getSystemUiVisibility();
+    int color=a.getWindow().getStatusBarColor();
+    // Android 15 edge-to-edge may report a transparent status bar even for a white window.
+    statusBarReady.set((color==android.graphics.Color.WHITE || color==android.graphics.Color.TRANSPARENT) &&
+      (flags & android.view.View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR)!=0 &&
+      (flags & android.view.View.SYSTEM_UI_FLAG_FULLSCREEN)==0);
+   });
+   assertTrue("Native status bar must be white with dark icons",statusBarReady.get());
    assertEquals("true",js("return Array.from(document.querySelectorAll('.metric strong')).every(x=>x.getBoundingClientRect().height<=parseFloat(getComputedStyle(x).lineHeight)+1&&x.scrollWidth<=x.clientWidth+1)"));
   }
   writeEvidence(name+".png",bytes.toByteArray());
@@ -139,6 +148,14 @@ public class StartupTest {
   js("document.querySelector('form .select-trigger').click();return true");
   until("document.querySelector('[role=option]')");
   js("document.querySelector('[role=option]').click();return true");Thread.sleep(250);
+  // Payer selection is mandatory. An unselected source must not write a payment event.
+  js("document.querySelector('form button[type=submit]').click();return true");
+  assertEquals(2,eventCount());
+  assertEquals("true",js("return document.querySelector('form').innerText.includes('پرداخت‌کننده واقعی را انتخاب کنید')"));
+  js("var c=Array.from(document.querySelectorAll('form .control')).find(x=>x.querySelector('label')?.textContent.includes('چه کسی واقعاً پرداخت کرد؟'));if(!c)throw Error('Missing payer selector');c.querySelector('.select-trigger').click();return true");
+  until("document.querySelector('.search-dialog[open] [role=option]')");
+  // The fixture puts household money in a custodial card, not the main cash box.
+  js("var o=Array.from(document.querySelectorAll('.search-dialog[open] [role=option]')).find(x=>x.textContent.includes('وجه امانی'));if(!o)throw Error('Missing funded custody source');o.click();return true");
   js("document.querySelector('form button[type=submit]').click();return true");
   until("JSON.parse(DongNative.invoke(JSON.stringify({op:'get'}))).value.store.events.length===3");
   tap(".mobile-nav button","اقساط");screenshot("02-installments");

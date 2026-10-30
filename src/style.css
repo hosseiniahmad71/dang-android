@@ -151,3 +151,31 @@ body{line-height:1.75}button,input,textarea{font:inherit}svg.lucide{stroke-width
 .travel-summary strong{font-weight:850;color:#163960;font-size:clamp(14px,2vw,18px)}.travel-history{max-width:100%}.travel-entry{min-width:0}.travel-entry b{font-variant-numeric:tabular-nums}
 @media(max-width:720px){.travel-hero{min-height:142px;padding:20px}.travel-hero-art{width:90px;height:96px}.travel-hero-art svg{width:40px}.travel-create-card{padding:17px!important}.travel-tabs button{font-size:11px;padding:9px 5px}.travel-tabs svg{width:17px}.travel-quick-intro{flex-wrap:wrap}.travel-selector{padding:14px!important}}
 @media(max-width:390px){.travel-hero-art{width:58px;height:83px}.travel-hero-art svg{width:32px}.travel-tabs{gap:5px}.travel-tabs button{font-size:10px;gap:3px;padding:8px 3px}.travel-new-shortcut{padding:8px}.travel-info-toggle{font-size:11px}.travel-selector-heading small{font-size:10px}}
+
+
+/* Household payment, member drilldown and narrow-screen backup status. */
+.member-row-action{display:grid;width:100%;text-align:inherit;cursor:pointer;font:inherit;background:transparent;border:0;color:inherit}
+.member-row-action:hover,.member-row-action[aria-expanded="true"]{background:#f5f8fc}
+.member-row-action:focus-visible,.installment-pay-direct:focus-visible{outline:3px solid #2d73ac;outline-offset:2px}
+.member-detail-card{min-width:0;margin:12px 0 18px;padding:16px;border:1px solid #d6e2ef;background:#f8fbff;border-radius:18px}
+.member-detail-title{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px;color:#153a67}
+.member-detail-title span{color:#60718a;font-size:12px}
+.member-detail-metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.member-detail-metrics>div{min-width:0;padding:10px;background:white;border-radius:12px}
+.member-detail-metrics small{display:block;color:#60718a;font-size:11px;margin-bottom:5px}
+.member-detail-metrics b{display:block;font-size:13px;overflow-wrap:anywhere}
+.member-detail-caption{display:block;font-size:12px;margin:16px 0 8px}
+.member-detail-entries>div{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;padding:9px 0;border-bottom:1px solid #e2e9f3;font-size:12px}
+.member-detail-entries strong{margin-inline-start:auto}
+.member-detail-entries small{color:#738198}
+.installment-pay-direct{margin-top:8px;padding:8px 12px;min-height:35px;font-size:12px}
+.settings-accordion-body,.settings-card,.settings-panel,.settings-item,.status-note,.form-section,.record,.record-main,.record-amount,.main-area,.content{min-width:0;max-width:100%}
+.status-note,.toast,.form-error,.muted,.settings-card p{overflow-wrap:anywhere;word-break:normal}
+@media(max-width:670px){
+ .member-detail-card{padding:12px}
+ .member-detail-metrics{gap:7px}
+ .member-detail-metrics>div{padding:9px 7px}
+ .member-detail-metrics b{font-size:12px}
+ .installment-pay-direct{width:100%;justify-content:center}
+ .record-amount{min-width:0}
+}
