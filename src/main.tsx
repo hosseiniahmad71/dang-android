@@ -165,7 +165,7 @@ function PlanForm({store,save}:{store:Store,save:(p:Plan)=>boolean}){
 }
 function PaymentForm({store,save,initialInstallmentId=''}:{store:Store,save:(e:Event)=>boolean,initialInstallmentId?:string}){
  const available=store.plans.flatMap(p=>p.installments.filter(i=>remainingInstallment(store,i.id)>0).map(i=>({value:i.id,label:p.title+' | '+p.provider+' | '+jalaliLabel(i.dueDate)+' | مانده '+money(remainingInstallment(store,i.id))})));
- const [id,setId]=useState(initialInstallmentId),[amount,setAmount]=useState(initialInstallmentId?String(remainingInstallment(store,initialInstallmentId)):''),[date,setDate]=useState(currentIso()),[source,setSource]=useState('fund'),[error,setError]=useState('');
+ const [id,setId]=useState(initialInstallmentId),[amount,setAmount]=useState(initialInstallmentId?String(remainingInstallment(store,initialInstallmentId)):''),[date,setDate]=useState(currentIso()),[source,setSource]=useState(''),[error,setError]=useState('');
  const remaining=id?remainingInstallment(store,id):0,sourceOptions=paymentSourceOptions(store);
  function submit(e:React.FormEvent){
   e.preventDefault();
@@ -187,7 +187,7 @@ function PaymentForm({store,save,initialInstallmentId=''}:{store:Store,save:(e:E
     <PersianDate minPeriod={store.startPeriod} label="تاریخ واقعی پرداخت" value={date} onChange={setDate}/>
     <SearchSelect label="چه کسی واقعاً پرداخت کرد؟" value={source} onChange={setSource} options={sourceOptions}/>
    </div>
-   <Notice>{source==='fund'?'این پرداخت از موجودی صندوق مشترک کسر می‌شود و به هیچ عضوی اعتبار دنگ نمی‌دهد.':'پرداخت از پول شخصی عضو به همان مبلغ در دنگ ماه پرداخت او منظور می‌شود؛ حتی اگر صاحب اعتبار خرید شخص دیگری باشد.'} هزینه قسط در ماه سررسید محاسبه شده است؛ این پرداخت دوباره به هزینه خانه اضافه نمی‌شود.</Notice>
+   <Notice>{!source?'پرداخت‌کننده واقعی را انتخاب کنید.':source==='fund'?'این پرداخت از موجودی صندوق مشترک کسر می‌شود و به هیچ عضوی اعتبار دنگ نمی‌دهد.':'پرداخت از پول شخصی عضو به همان مبلغ در دنگ ماه پرداخت او منظور می‌شود؛ حتی اگر صاحب اعتبار خرید شخص دیگری باشد.'} هزینه قسط در ماه سررسید محاسبه شده است؛ این پرداخت دوباره به هزینه خانه اضافه نمی‌شود.</Notice>
    {error&&<div className="form-error" role="alert">{error}</div>}
    <div className="form-footer"><SaveButton>ثبت پرداخت قسط</SaveButton></div>
   </>}
