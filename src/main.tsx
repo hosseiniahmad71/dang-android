@@ -11,6 +11,8 @@ import {loadStore,saveStore,restoreStore,reverseFinancialEvent,setPeriodLock,rev
 import {isNativeAndroid} from './native-bridge';
 // @ts-ignore: shared JavaScript financial rules are separately tested
 import {buildProviderSchedule,providerRule,recommendedCount} from './installment-rules.mjs';
+// @ts-ignore: shared JavaScript payment-source policy is covered by Node regression tests
+import {MEMBER_CASH_ACCOUNT,paymentSourceOptions,resolvePaymentSource} from './installment-payment-source.mjs';
 // @ts-ignore: shared JavaScript policy is separately tested
 import {validateDepositBatch} from './deposit-policy.mjs';
 // @ts-ignore: JS projection performs the same checks used by Android offline runtime
@@ -161,12 +163,35 @@ function PlanForm({store,save}:{store:Store,save:(p:Plan)=>boolean}){
   <div className="form-footer"><SaveButton>ثبت قرارداد اقساطی</SaveButton></div>
  </form>
 }
-function PaymentForm({store,save,period}:{store:Store,save:(e:Event)=>boolean,period:string}){
- const available=store.plans.flatMap(p=>p.installments.filter(i=>remainingInstallment(store,i.id)>0).map(i=>({value:i.id,label:`${p.title} | ${p.provider} | ${jalaliLabel(i.dueDate)} | مانده ${money(remainingInstallment(store,i.id))}`})));
- const [id,setId]=useState(''),[amount,setAmount]=useState(''),[date,setDate]=useState(currentIso()),[account,setAccount]=useState((custodyBalances(store)['maryam-card']||0)>0?'maryam-card':'fund'),[paidBy,setPaidBy]=useState('ahmad'),[creditPeriod,setCreditPeriod]=useState(period),[error,setError]=useState('');
- const remaining=id?remainingInstallment(store,id):0;
- function submit(e:React.FormEvent){e.preventDefault();if(!id||!remaining)return setError('قسط پرداخت‌نشده‌ای را انتخاب کنید.');const v=validateAmount(amount,remaining);if(v.error)return setError(v.error);const owner=store.accounts.find(x=>x.id===account),custody=custodyBalances(store)[account]||0,fromCustody=account!=='fund'&&custody>=v.n;if(account!=='fund'&&!fromCustody&&(custody>0||owner?.ownerId!==paidBy||owner.kind!=='personal'))return setError('برای پرداخت از وجه امانی، مانده باید کافی باشد؛ پرداخت شخصی هم فقط از کارت همان عضو مجاز است.');if(save({id:uuid(),kind:'payment',date,amount:v.n,installmentId:id,accountId:account,paidById:account==='fund'||fromCustody?'':paidBy,fundedBy:account==='fund'?undefined:fromCustody?'fund':'personal',creditPeriod,description:''})){setId('');setAmount('');setError('')}}
- return <form className="form-section" onSubmit={submit}><div className="form-heading"><h2>پرداخت قسط</h2><p>پرداخت کامل یا بخشی از یک سررسید ثبت‌شده</p></div>{available.length===0?<Notice tone="warning">قسط پرداخت‌نشده‌ای وجود ندارد. ابتدا از تب «خرید اقساطی» قرارداد بسازید.</Notice>:<><div className="form-grid"><div className="wide"><SearchSelect label="انتخاب قسط (قابل جست‌وجو)" value={id} onChange={v=>{setId(v);setAmount(String(remainingInstallment(store,v)))}} options={available}/></div>{id&&<MoneyInput label="مبلغ پرداختی" value={amount} onChange={setAmount} note={`مانده قابل پرداخت: ${money(remaining)}`}/>}<PersianDate minPeriod={store.startPeriod} label="تاریخ واقعی پرداخت" value={date} onChange={v=>{setDate(v);setCreditPeriod(jalaliKey(v))}}/><SearchSelect label="پرداخت از کدام حساب؟" value={account} onChange={setAccount} options={store.accounts.filter(a=>!store.archivedAccounts.includes(a.id)).map(a=>({value:a.id,label:a.name}))}/>{account!=='fund'&&!(custodyBalances(store)[account]>0)&&<><SearchSelect label="عضو پرداخت‌کننده واقعی" value={paidBy} onChange={setPaidBy} options={store.members.filter(m=>!store.archivedMembers.includes(m.id)).map(m=>({value:m.id,label:m.name}))}/><SearchSelect label="اختصاص اعتبار به ماه" value={creditPeriod} onChange={setCreditPeriod} options={periodOptions(creditPeriod,store.startPeriod)}/></>}</div><Notice>{account!=='fund'&&(custodyBalances(store)[account]||0)>0?'این حساب دارای وجه امانی خانوادگی است؛ پرداخت از آن به عضو اعتبار شخصی جدید نمی‌دهد. ':''}قسط در ماه سررسیدش هزینه محسوب می‌شود؛ پرداخت فعلی فقط مانده قسط و موجودی صندوق یا اعتبار دنگ را تغییر می‌دهد. مالک اعتبار الزاماً پرداخت‌کننده نیست.</Notice>{error&&<div className="form-error">{error}</div>}<div className="form-footer"><SaveButton>ثبت پرداخت قسط</SaveButton></div></>}</form>
+function PaymentForm({store,save,initialInstallmentId=''}:{store:Store,save:(e:Event)=>boolean,initialInstallmentId?:string}){
+ const available=store.plans.flatMap(p=>p.installments.filter(i=>remainingInstallment(store,i.id)>0).map(i=>({value:i.id,label:p.title+' | '+p.provider+' | '+jalaliLabel(i.dueDate)+' | مانده '+money(remainingInstallment(store,i.id))})));
+ const [id,setId]=useState(initialInstallmentId),[amount,setAmount]=useState(initialInstallmentId?String(remainingInstallment(store,initialInstallmentId)):''),[date,setDate]=useState(currentIso()),[source,setSource]=useState('fund'),[error,setError]=useState('');
+ const remaining=id?remainingInstallment(store,id):0,sourceOptions=paymentSourceOptions(store);
+ function submit(e:React.FormEvent){
+  e.preventDefault();
+  if(!id||!remaining)return setError('قسط پرداخت‌نشده‌ای را انتخاب کنید.');
+  const v=validateAmount(amount,remaining);if(v.error)return setError(v.error);
+  try{
+   const payer=resolvePaymentSource(store,source);
+   if(save({id:uuid(),kind:'payment',date,amount:v.n,installmentId:id,...payer,creditPeriod:jalaliKey(date),description:''})){
+    setId('');setAmount('');setError('');
+   }
+  }catch(ex){setError(ex instanceof Error?ex.message:String(ex))}
+ }
+ return <form className="form-section" onSubmit={submit}>
+  <div className="form-heading"><h2>پرداخت قسط</h2><p>ثبت پرداخت واقعی، کامل یا جزئی</p></div>
+  {available.length===0?<Notice tone="warning">قسط پرداخت‌نشده‌ای وجود ندارد. ابتدا از «خرید اقساطی» قرارداد بسازید.</Notice>:<>
+   <div className="form-grid">
+    <div className="wide"><SearchSelect label="قسط موردنظر" value={id} onChange={v=>{setId(v);setAmount(String(remainingInstallment(store,v)));setError('')}} options={available}/></div>
+    {id&&<MoneyInput label="مبلغ پرداختی" value={amount} onChange={setAmount} note={'مانده قابل پرداخت: '+money(remaining)}/>}
+    <PersianDate minPeriod={store.startPeriod} label="تاریخ واقعی پرداخت" value={date} onChange={setDate}/>
+    <SearchSelect label="چه کسی واقعاً پرداخت کرد؟" value={source} onChange={setSource} options={sourceOptions}/>
+   </div>
+   <Notice>{source==='fund'?'این پرداخت از موجودی صندوق مشترک کسر می‌شود و به هیچ عضوی اعتبار دنگ نمی‌دهد.':'پرداخت از پول شخصی عضو به همان مبلغ در دنگ ماه پرداخت او منظور می‌شود؛ حتی اگر صاحب اعتبار خرید شخص دیگری باشد.'} هزینه قسط در ماه سررسید محاسبه شده است؛ این پرداخت دوباره به هزینه خانه اضافه نمی‌شود.</Notice>
+   {error&&<div className="form-error" role="alert">{error}</div>}
+   <div className="form-footer"><SaveButton>ثبت پرداخت قسط</SaveButton></div>
+  </>}
+ </form>;
 }
 function TransferForm({store,save}:{store:Store,save:(e:Event)=>boolean}){
  const [amount,setAmount]=useState(''),[date,setDate]=useState(currentIso()),[from,setFrom]=useState('fund'),[to,setTo]=useState('maryam-card'),[description,setDescription]=useState(''),[error,setError]=useState('');
