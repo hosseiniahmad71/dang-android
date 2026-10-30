@@ -27,11 +27,13 @@ adb shell am instrument -w -e class 'ir.dong.household.UpgradeTest#seedOriginal'
 grep -q 'OK (1 test)' upgrade-evidence/seed.txt
 adb shell am force-stop "$PKG"
 adb shell dumpsys package "$PKG" > upgrade-evidence/package-before.txt
+adb shell pm list packages -U "$PKG" > upgrade-evidence/uid-before.txt
 adb pull "/sdcard/Android/data/$PKG/files/dong-upgrade-before.json" upgrade-evidence/before.json
 test -s upgrade-evidence/before.json
 adb install -r "$NEW" | tee upgrade-evidence/install-upgrade.txt
 grep -q Success upgrade-evidence/install-upgrade.txt
 adb shell dumpsys package "$PKG" > upgrade-evidence/package-after.txt
+adb shell pm list packages -U "$PKG" > upgrade-evidence/uid-after.txt
 adb shell am start -n "$PKG/.MainActivity"
 sleep 4
 adb shell am instrument -w -e class 'ir.dong.household.UpgradeTest#verifyAfterUpdate' -e snapshot after "$PKG.test/androidx.test.runner.AndroidJUnitRunner" | tee upgrade-evidence/verify.txt
@@ -62,7 +64,7 @@ def extract(p,pat):
  assert m,'Missing package evidence '+pat
  return m.group(1)
 first=[extract(p,r'firstInstallTime=([^\n]+)') for p in packages]
-uid=[extract(p,r'\buserId=(\d+)') for p in packages]
+uid=[extract((root/x).read_text(),r'uid:(\d+)') for x in ['uid-before.txt','uid-after.txt']]
 code=[extract(p,r'\bversionCode=(\d+)') for p in packages]
 assert first[0]==first[1], 'First-install timestamp changed'
 assert uid[0]==uid[1], 'Package UID changed'
