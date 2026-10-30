@@ -139,6 +139,13 @@ public class StartupTest {
   js("document.querySelector('form .select-trigger').click();return true");
   until("document.querySelector('[role=option]')");
   js("document.querySelector('[role=option]').click();return true");Thread.sleep(250);
+  // Payer selection is mandatory. An unselected source must not write a payment event.
+  js("document.querySelector('form button[type=submit]').click();return true");
+  assertEquals(2,eventCount());
+  assertEquals("true",js("return document.querySelector('form').innerText.includes('پرداخت‌کننده واقعی را انتخاب کنید')"));
+  js("var c=Array.from(document.querySelectorAll('form .control')).find(x=>x.querySelector('label')?.textContent.includes('چه کسی واقعاً پرداخت کرد؟'));if(!c)throw Error('Missing payer selector');c.querySelector('.select-trigger').click();return true");
+  until("document.querySelector('.search-dialog[open] [role=option]')");
+  js("var o=Array.from(document.querySelectorAll('.search-dialog[open] [role=option]')).find(x=>x.textContent.includes('صندوق مشترک'));if(!o)throw Error('Missing fund payer');o.click();return true");
   js("document.querySelector('form button[type=submit]').click();return true");
   until("JSON.parse(DongNative.invoke(JSON.stringify({op:'get'}))).value.store.events.length===3");
   tap(".mobile-nav button","اقساط");screenshot("02-installments");
