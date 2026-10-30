@@ -54,7 +54,7 @@ export function AuditDetailView({store,period,section,memberId,onBack,onMember}:
  const personal=useMemo(()=>personalPaymentIds(store),[store]);
  const memberAuditResult=useMemo(()=>memberAudit(store,memberId,period),[store,memberId,period]);
  const memberStats=stats.memberStats.find(m=>m.id===memberId);
- const cashRows=cash.records.filter(x=>(x.description+' '+accountName(store,x.accountId)+' '+memberName(store,x.memberId)+' '+x.kind).includes(query)).slice().reverse();
+ const cashRows=cash.records.filter((x:any)=>(x.description+' '+accountName(store,x.accountId)+' '+memberName(store,x.memberId)+' '+x.kind).includes(query)).slice().reverse();
  const currentEvents=effectiveEvents(store).filter(e=>periodOf(e.date)===period);
  const expenses=currentEvents.filter(e=>e.kind==='purchase').map(e=>({id:e.id,kind:'خرید خانه',date:e.date,amount:e.amount,detail:e.category+' · '+(e.accountId==='fund'?'از صندوق':personal.has(e.id)?'پرداخت شخصی '+memberName(store,e.paidById):'از پول صندوق نزد '+accountName(store,e.accountId))}));
  for(const p of store.plans)for(const i of p.installments)if(periodOf(i.dueDate)===period)expenses.push({id:i.id,kind:'قسط سررسید',date:i.dueDate,amount:i.amount,detail:p.title+' · '+p.provider+' · مانده '+fmt(remainingInstallment(store,i.id))});
