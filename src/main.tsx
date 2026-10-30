@@ -244,19 +244,18 @@ function HistoryView({store,onReverse}:{store:Store,onReverse:(id:string,reason:
   if(filter!=='all'&&(filter==='cancelled'?!reversalByOriginal.has(event.id):event.kind!==filter))return false;
   return (`${EventTitle(event,store)} ${EventDescription(event,store)} ${event.description||''} ${reversalByOriginal.has(event.id)?'باطل‌شده':''}`).includes(query);
  }).slice().reverse();
- const confirmReversal=(event:Event)=>{
-  const message=`آیا «${EventTitle(event,store)}» باطل شود؟ اثر مالی آن لغو می‌شود، اما سابقه برای بررسی محفوظ می‌ماند.`;
-  if(window.confirm(message))void onReverse(event.id,'ابطال با تأیید مدیر');
- };
- const correctAmount=(event:Event)=>{
-  if(event.kind==='reversal')return; // Audit reversal itself has a fixed zero amount and cannot be edited.
-  const value=window.prompt('مبلغ صحیح به تومان (فقط عدد):',String(event.amount));
-  if(value===null)return;
-  const amount=parseToman(value);
-  if(!safeToman(amount)||amount===event.amount){window.alert('مبلغ جدید باید معتبر و با مبلغ قبلی متفاوت باشد.');return}
-  if(window.confirm('مبلغ جدید ثبت شود؟ سند قبلی باطل و سند اصلاح‌شده جایگزین می‌شود؛ همه سوابق حسابرسی حفظ خواهند شد.'))
-   void onReverse(event.id,'اصلاح مبلغ با تأیید مدیر',{...event,id:uuid(),amount});
- };
+ const [pending,setPending]=useState<Event|null>(null),[pendingAction,setPendingAction]=useState<'cancel'|'correct'>('cancel'),[correctedValue,setCorrectedValue]=useState(''),[dialogError,setDialogError]=useState('');
+ function confirmReversal(event:Event){setPending(event);setPendingAction('cancel');setDialogError('')}
+ function correctAmount(event:Event){if(event.kind==='reversal')return;setPending(event);setPendingAction('correct');setCorrectedValue(String(event.amount));setDialogError('')}
+ function confirmHistoryChange(){
+  if(!pending)return;
+  if(pendingAction==='cancel'){void onReverse(pending.id,'ابطال با تأیید مدیر');setPending(null);return}
+  if(pending.kind==='reversal')return;
+  const amount=parseToman(correctedValue);
+  if(!safeToman(amount)||amount===pending.amount){setDialogError('مبلغ جدید باید عددی معتبر و متفاوت با مبلغ فعلی باشد.');return}
+  void onReverse(pending.id,'اصلاح مبلغ با تأیید مدیر',{...pending,id:uuid(),amount});
+  setPending(null);
+ }
  return <div className="page-block">
   <div className="page-heading"><div><h1>تاریخچه مالی</h1><p>تمام اسناد و اصلاحات مالی ثبت‌شده</p></div><span className="count-badge">{fnum(rows.length)} سند</span></div>
   <section className="card">
@@ -276,7 +275,16 @@ function HistoryView({store,onReverse}:{store:Store,onReverse:(id:string,reason:
      </div>
     </div>})}</div>}
   </section>
-  <Notice>برای ابطال فقط هشدار تأیید نمایش داده می‌شود؛ سند حسابرسی محفوظ می‌ماند، اما ردیف اضافه‌ای در تاریخچه ایجاد نمی‌شود. ماه قفل‌شده را ابتدا بازگشایی کن.</Notice>
+  <Notice>سند باطل‌شده برای بررسی حفظ می‌شود، اما دیگر در محاسبات اثر ندارد.</Notice>
+  {pending&&<div className="dong-dialog-backdrop" onMouseDown={e=>{if(e.target===e.currentTarget)setPending(null)}}>
+    <section role="dialog" aria-modal="true" aria-labelledby="history-dialog-title" className="dong-dialog" onKeyDown={e=>{if(e.key==='Escape')setPending(null)}}>
+      <div className="dong-dialog-heading"><Info size={23}/><h2 id="history-dialog-title">{pendingAction==='cancel'?'تأیید ابطال سند':'اصلاح مبلغ ثبت‌شده'}</h2></div>
+      <p>{EventTitle(pending,store)} · {money(pending.amount)}</p>
+      {pendingAction==='cancel'?<p>اثر مالی این سند برداشته می‌شود؛ سابقه آن برای بررسی باقی می‌ماند.</p>:<><MoneyInput label="مبلغ صحیح به تومان" value={correctedValue} onChange={setCorrectedValue}/><p>سند فعلی باطل می‌شود و سند اصلاح‌شده جای آن را می‌گیرد.</p></>}
+      {dialogError&&<p className="dong-dialog-error" role="alert">{dialogError}</p>}
+      <div className="dong-dialog-actions"><button type="button" autoFocus className="btn btn-outline" onClick={()=>setPending(null)}>انصراف</button><button type="button" className="btn btn-primary" onClick={confirmHistoryChange}>{pendingAction==='cancel'?'ابطال سند':'ثبت اصلاح'}</button></div>
+    </section>
+  </div>}
  </div>
 }
 function OperationsView({store,operation,setOperation,save,saveMany,savePlan,period,paymentSelection}:{store:Store,operation:Operation,setOperation:(op:Operation)=>void,save:(e:Event)=>boolean,saveMany:(e:Event[])=>boolean,savePlan:(p:Plan)=>boolean,period:string,paymentSelection:string}){
