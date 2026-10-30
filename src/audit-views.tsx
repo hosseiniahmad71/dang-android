@@ -1,4 +1,5 @@
 import React,{useMemo,useState} from 'react';
+import './audit-style.css';
 import {ArrowRight,Wallet,Users,ReceiptText,Search,ChevronLeft,Info,Landmark,History} from 'lucide-react';
 import type {Store,Event} from './types';
 import {effectiveEvents,memberCredits,obligation,waived,periodOf,personalPaymentIds} from './types';
