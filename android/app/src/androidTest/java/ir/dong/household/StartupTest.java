@@ -85,7 +85,7 @@ public class StartupTest {
       (flags & android.view.View.SYSTEM_UI_FLAG_FULLSCREEN)==0);
    });
    assertTrue("Native status bar must be white with dark icons",statusBarReady.get());
-   assertEquals("true",js("return Array.from(document.querySelectorAll('.metric strong')).every(x=>x.getBoundingClientRect().height<=parseFloat(getComputedStyle(x).lineHeight)+1&&x.scrollWidth<=x.clientWidth+1)"));
+   assertEquals("true",js("return Array.from(document.querySelectorAll('.audit-summary-pair .audit-figure strong')).length>=3&&Array.from(document.querySelectorAll('.audit-summary-pair .audit-figure strong')).every(x=>x.getBoundingClientRect().height<=parseFloat(getComputedStyle(x).lineHeight)+1&&x.scrollWidth<=x.clientWidth+1)"));
   }
   writeEvidence(name+".png",bytes.toByteArray());
  }
@@ -95,14 +95,57 @@ public class StartupTest {
   for(int i=0;i<node.getChildCount();i++)if(accept(node.getChild(i)))return true;
   return false;
  }
+ // Android CI emulators can surface a Pixel Launcher ANR over the WebView.
+ // Dismiss only this OS popup using "Wait"; still REQUIRE a truly visible soft keyboard.
+ private boolean nodeContains(android.view.accessibility.AccessibilityNodeInfo node,String needle){
+  if(node==null)return false;
+  if(node.getText()!=null&&node.getText().toString().contains(needle))return true;
+  for(int i=0;i<node.getChildCount();i++)if(nodeContains(node.getChild(i),needle))return true;
+  return false;
+ }
+ private boolean clickNodeWithText(android.view.accessibility.AccessibilityNodeInfo node,String exact){
+  if(node==null)return false;
+  if(node.getText()!=null&&exact.equals(node.getText().toString())){
+   android.view.accessibility.AccessibilityNodeInfo target=node;
+   while(target!=null){
+    if(target.isClickable()&&target.performAction(android.view.accessibility.AccessibilityNodeInfo.ACTION_CLICK))return true;
+    target=target.getParent();
+   }
+  }
+  for(int i=0;i<node.getChildCount();i++)if(clickNodeWithText(node.getChild(i),exact))return true;
+  return false;
+ }
+ private boolean dismissLauncherANR(){
+  android.view.accessibility.AccessibilityNodeInfo root=InstrumentationRegistry.getInstrumentation().getUiAutomation().getRootInActiveWindow();
+  if(root==null||!nodeContains(root,"Pixel Launcher isn't responding"))return false;
+  return clickNodeWithText(root,"Wait");
+ }
+ private boolean imeVisible(){
+  AtomicReference<Boolean> visible=new AtomicReference<>(false);
+  scenario.getScenario().onActivity(a->{
+   android.view.WindowInsets insets=a.getWindow().getDecorView().getRootWindowInsets();
+   visible.set(insets!=null&&insets.isVisible(android.view.WindowInsets.Type.ime()));
+  });
+  return visible.get();
+ }
  private void touchSearchInput()throws Exception{
-  JSONObject p=new JSONObject(js("var r=document.querySelector('.search-dialog input').getBoundingClientRect();return {x:r.x+r.width/2,y:r.y+r.height/2}"));
-  AtomicReference<float[]> coords=new AtomicReference<>();
-  scenario.getScenario().onActivity(a->{WebView w=find(a.getWindow().getDecorView());int[] loc=new int[2];w.getLocationOnScreen(loc);coords.set(new float[]{loc[0]+(float)p.optDouble("x")*w.getScale(),loc[1]+(float)p.optDouble("y")*w.getScale()});});
-  long now=android.os.SystemClock.uptimeMillis();float[] xy=coords.get();
-  for(int action:new int[]{android.view.MotionEvent.ACTION_DOWN,android.view.MotionEvent.ACTION_UP}){android.view.MotionEvent event=android.view.MotionEvent.obtain(now,now+30,action,xy[0],xy[1],0);InstrumentationRegistry.getInstrumentation().getUiAutomation().injectInputEvent(event,true);event.recycle();}
   boolean visible=false;
-  for(int i=0;i<100&&!visible;i++){AtomicReference<Boolean> v=new AtomicReference<>(false);scenario.getScenario().onActivity(a->v.set(a.getWindow().getDecorView().getRootWindowInsets().isVisible(android.view.WindowInsets.Type.ime())));visible=v.get();if(!visible)Thread.sleep(100);}
+  for(int attempt=0;attempt<3&&!visible;attempt++){
+   dismissLauncherANR();
+   JSONObject p=new JSONObject(js("var r=document.querySelector('.search-dialog input').getBoundingClientRect();return {x:r.x+r.width/2,y:r.y+r.height/2}"));
+   AtomicReference<float[]> coords=new AtomicReference<>();
+   scenario.getScenario().onActivity(a->{WebView w=find(a.getWindow().getDecorView());int[] loc=new int[2];w.getLocationOnScreen(loc);coords.set(new float[]{loc[0]+(float)p.optDouble("x")*w.getScale(),loc[1]+(float)p.optDouble("y")*w.getScale()});});
+   long now=android.os.SystemClock.uptimeMillis();float[] xy=coords.get();
+   for(int action:new int[]{android.view.MotionEvent.ACTION_DOWN,android.view.MotionEvent.ACTION_UP}){
+    android.view.MotionEvent event=android.view.MotionEvent.obtain(now,now+30,action,xy[0],xy[1],0);
+    InstrumentationRegistry.getInstrumentation().getUiAutomation().injectInputEvent(event,true);event.recycle();
+   }
+   for(int i=0;i<30&&!visible;i++){
+    if(dismissLauncherANR())break;
+    visible=imeVisible();
+    if(!visible)Thread.sleep(100);
+   }
+  }
   assertTrue("Keyboard must really open during selector regression test",visible);
  }
  @Test public void offlineDashboardFinanceAndReopen() throws Exception {
@@ -119,6 +162,18 @@ public class StartupTest {
   scenario.getScenario().recreate();
   until("document.querySelector('.app-shell') && document.getElementById('startup-panel').hidden");
   screenshot("01-dashboard");
+  assertEquals("true",js("return !!document.querySelector('.audit-summary-pair') && document.documentElement.scrollWidth<=innerWidth+1"));
+  js("document.querySelector('.audit-summary-card .audit-open').click();return true");
+  until("document.querySelector('.audit-member-link')");
+  js("document.querySelector('.audit-member-link').click();return true");
+  until("document.querySelector('.audit-view h2') && document.querySelector('.audit-view h2').textContent.includes('صورت‌حساب')");
+  js("document.querySelector('.audit-back').click();return true");
+  until("document.querySelector('.audit-summary-pair')");
+  js("document.querySelectorAll('.audit-summary-card .audit-open')[1].click();return true");
+  until("document.querySelector('.audit-formula')");
+  assertEquals("true",js("return document.querySelector('.audit-view').textContent.includes('موجودی حساب اصلی') && document.documentElement.scrollWidth<=innerWidth+1"));
+  js("document.querySelector('.audit-back').click();return true");
+  until("document.querySelector('.audit-summary-pair')");
   js("window.selectorWidth=innerWidth;document.querySelector('.period-top .select-trigger').click();return true");
   until("document.querySelector('.search-dialog[open]')");
   assertEquals("false",js("return document.activeElement.tagName==='INPUT'"));
@@ -160,10 +215,10 @@ public class StartupTest {
   until("JSON.parse(DongNative.invoke(JSON.stringify({op:'get'}))).value.store.events.length===3");
   tap(".mobile-nav button","اقساط");screenshot("02-installments");
   tap(".mobile-nav button","تاریخچه");assertEquals("3",js("return document.querySelectorAll('.record').length"));
-  scenario.getScenario().onActivity(a->find(a.getWindow().getDecorView()).evaluateJavascript("document.querySelector('.record-kind-purchase button').click()",null));
-  boolean accepted=false;
-  for(int i=0;i<100&&!accepted;i++){accepted=accept(InstrumentationRegistry.getInstrumentation().getUiAutomation().getRootInActiveWindow());if(!accepted)Thread.sleep(100);}
-  assertTrue("Native Persian cancellation confirmation missing",accepted);
+  js("document.querySelector('.record-kind-purchase button').click();return true");
+  until("document.querySelector('.dong-dialog[role=dialog]')");
+  assertEquals("true",js("return document.querySelector('.dong-dialog h2').textContent.includes('تأیید ابطال سند')"));
+  js("var b=Array.from(document.querySelectorAll('.dong-dialog button')).find(x=>x.textContent.includes('ابطال سند'));if(!b)throw Error('Missing cancellation confirmation');b.click();return true");
   until("document.querySelector('.cancelled-stamp')");
   assertEquals("3",js("return document.querySelectorAll('.record').length"));assertEquals(4,eventCount());
   js("document.querySelector('.cancelled-stamp').scrollIntoView({block:'center'});return true");screenshot("03-history");
